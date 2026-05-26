@@ -1,0 +1,18 @@
+{
+    "name": "TimboJimbo.PropertyBindings.Editor",
+    "rootNamespace": "TimboJimbo.PropertyBindings.Editor",
+    "references": [
+        "TimboJimbo.PropertyBindings.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
