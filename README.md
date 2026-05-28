@@ -1,6 +1,6 @@
 # Timbo Jimbo - Property Bindings
 
-Lets you find and drive bindable properties on GameObject
+Lets you find and drive bindable properties on GameObjects
 
 > [!WARNING]
 > This package is new - use at your own risk! :)
