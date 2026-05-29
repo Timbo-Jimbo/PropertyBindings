@@ -1,5 +1,6 @@
 #if TJ_PROPERTY_BINDINGS_DEBUG_WINDOWS
 using System.Collections.Generic;
+using TimboJimbo.PropertyBindings;
 using TimboJimboEditor.PropertyBindings.Utility;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;

@@ -89,8 +89,6 @@ namespace TimboJimboEditor
 
         private UndoPropertyModification[] OnPostprocessModifications(UndoPropertyModification[] undoPropertyModification)
         {
-            Debug.Log($"PostprocessModifications called with {undoPropertyModification.Length} modifications");
-
             FlushUndoRecord();
 
             using(ListPool<SimplifiedModification>.Get(out var parsedModifications))

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
+using TimboJimbo.PropertyBindings;
 using TimboJimboEditor.PropertyBindings.Utility;
 using UnityEngine;
 
@@ -79,8 +80,8 @@ namespace TimboJimboTests.PropertyBindings
             Assert.AreEqual(ComponentLayout.Two, prop.ComponentLayout);
             Assert.IsNotNull(prop.ComponentOnePath);
             Assert.IsNotNull(prop.ComponentTwoPath);
-            Assert.IsNull(prop.ComponentThreePath);
-            Assert.IsNull(prop.ComponentFourPath);
+            Assert.IsEmpty(prop.ComponentThreePath);
+            Assert.IsEmpty(prop.ComponentFourPath);
         }
 
         [Test]
@@ -96,7 +97,7 @@ namespace TimboJimboTests.PropertyBindings
             Assert.IsNotNull(prop.ComponentOnePath);
             Assert.IsNotNull(prop.ComponentTwoPath);
             Assert.IsNotNull(prop.ComponentThreePath);
-            Assert.IsNull(prop.ComponentFourPath);
+            Assert.IsEmpty(prop.ComponentFourPath);
         }
 
         [Test]
