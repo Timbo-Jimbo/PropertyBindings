@@ -1,3 +1,5 @@
+using System;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -6,7 +8,22 @@ namespace TimboJimbo.PropertyBindings.Editor.Utility
 {
     public static class PropertyBindingsEditorGUI
     {
-        public static ValueContainer ValueContainerField(Rect position, ValueContainer value)
+        public static ValueContainer ValueContainerField(Rect position, BindableProperty bindableProperty, ValueContainer value)
+        {
+            return ValueContainerField(position, value, bindableProperty);
+        }
+
+        public static ValueContainer ValueContainerField(Rect position, GUIContent label, BindableProperty bindableProperty, ValueContainer value)
+        {
+            var labelRect = new Rect(position.x, position.y, EditorGUIUtility.labelWidth, position.height);
+            var fieldRect = new Rect(position.x + EditorGUIUtility.labelWidth + 2, position.y,
+                position.width - EditorGUIUtility.labelWidth - 2, position.height);
+
+            EditorGUI.LabelField(labelRect, label);
+            return ValueContainerField(fieldRect, value, bindableProperty);
+        }
+
+        private static ValueContainer ValueContainerField(Rect position, ValueContainer value, BindableProperty bindableProperty)
         {
             switch (value.Kind)
             {
@@ -20,7 +37,7 @@ namespace TimboJimbo.PropertyBindings.Editor.Utility
                     value.BoolValue = EditorGUI.Toggle(position, value.BoolValue);
                     break;
                 case ValueKind.Enum:
-                    value.EnumValue = EditorGUI.IntField(position, value.EnumValue);
+                    value.EnumValue = EnumField(position, value.EnumValue, bindableProperty);
                     break;
                 case ValueKind.Vector2:
                     value.Vector2Value = MultiFloatField(position, value.Vector2Value);
@@ -42,7 +59,7 @@ namespace TimboJimbo.PropertyBindings.Editor.Utility
                     break;
                 }
                 case ValueKind.Reference:
-                    value.ReferenceValue = EditorGUI.ObjectField(position, value.ReferenceValue, typeof(Object), true);
+                    value.ReferenceValue = EditorGUI.ObjectField(position, value.ReferenceValue, TryGetObjectReferenceType(bindableProperty) ?? typeof(Object), true);
                     break;
                 case ValueKind.String:
                     value.StringValue = EditorGUI.TextField(position, value.StringValue);
@@ -54,6 +71,29 @@ namespace TimboJimbo.PropertyBindings.Editor.Utility
 
             return value;
         }
+
+        private static int EnumField(Rect position, int enumValue, BindableProperty bindableProperty)
+        {
+            var enumType = TypeResolver.TryGetExactMemberType(bindableProperty);
+
+            if (enumType != null && enumType.IsEnum)
+            {
+                var meta = EnumMetaResolver.GetEnumMeta(enumType);
+                var selectedIndex = meta.ValueToIndex(enumValue);
+                selectedIndex = Mathf.Clamp(selectedIndex, 0, meta.DisplayNames.Length - 1);
+                var newIndex = EditorGUI.Popup(position, selectedIndex, meta.DisplayNames);
+                return meta.IndexToValue(newIndex);
+            }
+
+            return EditorGUI.IntField(position, enumValue);
+        }
+
+        private static Type TryGetObjectReferenceType(BindableProperty bindableProperty)
+        {
+            var exactType = TypeResolver.TryGetExactMemberType(bindableProperty);
+            return exactType != null && typeof(Object).IsAssignableFrom(exactType) ? exactType : typeof(Object);
+        }
+
 
         private static readonly GUIContent[] Labels2 = { new GUIContent("X"), new GUIContent("Y") };
         private static readonly GUIContent[] Labels3 = { new GUIContent("X"), new GUIContent("Y"), new GUIContent("Z") };
@@ -80,39 +120,98 @@ namespace TimboJimbo.PropertyBindings.Editor.Utility
             return new Vector4(values[0], values[1], values[2], values[3]);
         }
 
-        public static ValueContainer ValueContainerField(Rect position, string label, ValueContainer value)
+
+        private class EnumMeta 
         {
-            return ValueContainerField(position, new GUIContent(label), value);
+            public string[] DisplayNames;
+            public Array Values;
+
+            public EnumMeta(string[] displayNames, Array values)
+            {
+                DisplayNames = displayNames;
+                Values = values;
+            }
+
+            public int IndexToValue(int index) => Convert.ToInt32(Values.GetValue(index));
+            public int ValueToIndex(int value) 
+            {
+                for (var i = 0; i < Values.Length; i++)
+                {
+                    if (Convert.ToInt32(Values.GetValue(i)) == value)
+                        return i;
+                }
+                return 0;
+            }
         }
 
-        public static ValueContainer ValueContainerField(Rect position, GUIContent label, ValueContainer value)
+        private static class EnumMetaResolver
         {
-            var labelRect = new Rect(position.x, position.y, EditorGUIUtility.labelWidth, position.height);
-            var fieldRect = new Rect(position.x + EditorGUIUtility.labelWidth + 2, position.y,
-                position.width - EditorGUIUtility.labelWidth - 2, position.height);
+            private static readonly System.Collections.Generic.Dictionary<Type, EnumMeta> _cache = new();
 
-            EditorGUI.LabelField(labelRect, label);
-            return ValueContainerField(fieldRect, value);
+            public static EnumMeta GetEnumMeta(Type enumType)
+            {
+                if (!_cache.TryGetValue(enumType, out var meta))
+                {
+                    var fields = enumType.GetFields(BindingFlags.Public | BindingFlags.Static);
+                    var displayNames = new string[fields.Length];
+                    var values = Array.CreateInstance(enumType, fields.Length);
+
+                    for (var i = 0; i < fields.Length; i++)
+                    {
+                        var inspectorName = fields[i].GetCustomAttribute<InspectorNameAttribute>();
+                        displayNames[i] = inspectorName != null
+                            ? inspectorName.displayName
+                            : ObjectNames.NicifyVariableName(fields[i].Name);
+                        values.SetValue(fields[i].GetValue(null), i);
+                    }
+
+                    meta = new EnumMeta(displayNames, values);
+                    _cache[enumType] = meta;
+                }
+                return meta;
+            }
+        }
+
+        private static class TypeResolver
+        {
+            private static readonly System.Collections.Generic.Dictionary<int, Type> _cache = new();
+
+            public static Type TryGetExactMemberType(BindableProperty bindableProperty)
+            {
+                if (bindableProperty.Target == null || string.IsNullOrEmpty(bindableProperty.Path))
+                    return null;
+
+                int key = (bindableProperty.Target.GetType().GetHashCode() * 397) ^ bindableProperty.Path.GetHashCode();
+                if (!_cache.TryGetValue(key, out var type))
+                {
+                    const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+                    var targetType = bindableProperty.Target.GetType();
+                    type = targetType.GetField(bindableProperty.Path, flags)?.FieldType
+                        ?? targetType.GetProperty(bindableProperty.Path, flags)?.PropertyType;
+                    _cache[key] = type;
+                }
+                return type;
+            }
         }
     }
 
     public static class PropertyBindingsEditorGUILayout
     {
-        public static ValueContainer ValueContainerField(ValueContainer value, params GUILayoutOption[] options)
+        public static ValueContainer ValueContainerField(BindableProperty bindableProperty, ValueContainer value, params GUILayoutOption[] options)
         {
             var rect = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight, options);
-            return PropertyBindingsEditorGUI.ValueContainerField(rect, value);
+            return PropertyBindingsEditorGUI.ValueContainerField(rect, bindableProperty, value);
         }
 
-        public static ValueContainer ValueContainerField(string label, ValueContainer value, params GUILayoutOption[] options)
+        public static ValueContainer ValueContainerField(string label, BindableProperty bindableProperty, ValueContainer value, params GUILayoutOption[] options)
         {
-            return ValueContainerField(new GUIContent(label), value, options);
+            return ValueContainerField(new GUIContent(label), bindableProperty, value, options);
         }
 
-        public static ValueContainer ValueContainerField(GUIContent label, ValueContainer value, params GUILayoutOption[] options)
+        public static ValueContainer ValueContainerField(GUIContent label, BindableProperty bindableProperty, ValueContainer value, params GUILayoutOption[] options)
         {
             var rect = EditorGUILayout.GetControlRect(true, EditorGUIUtility.singleLineHeight, options);
-            return PropertyBindingsEditorGUI.ValueContainerField(rect, label, value);
+            return PropertyBindingsEditorGUI.ValueContainerField(rect, label, bindableProperty, value);
         }
     }
 }

@@ -324,43 +324,6 @@ namespace TimboJimbo.PropertyBindings.Editor.Utility
             }
         }
 
-        /// <summary>
-        /// Maps SerializedPropertyType to our ValueKind enum.
-        /// </summary>
-        private static ValueKind SerializedPropertyTypeToValueKind(SerializedPropertyType propType)
-        {
-            switch (propType)
-            {
-                case SerializedPropertyType.Integer:
-                case SerializedPropertyType.ArraySize:
-                    return ValueKind.Int;
-                case SerializedPropertyType.Float:
-                    return ValueKind.Float;
-                case SerializedPropertyType.Boolean:
-                    return ValueKind.Bool;
-                case SerializedPropertyType.Vector2:
-                    return ValueKind.Vector2;
-                case SerializedPropertyType.Vector3:
-                    return ValueKind.Vector3;
-                case SerializedPropertyType.Vector4:
-                    return ValueKind.Vector4;
-                case SerializedPropertyType.Color:
-                    return ValueKind.Color;
-                case SerializedPropertyType.Quaternion:
-                    return ValueKind.Quaternion;
-                case SerializedPropertyType.Enum:
-                    return ValueKind.Enum;
-                case SerializedPropertyType.ObjectReference:
-                    return ValueKind.Reference;
-                case SerializedPropertyType.EntityId:
-                    return ValueKind.Reference;
-                case SerializedPropertyType.String:
-                    return ValueKind.String;
-                default:
-                    return ValueKind.Float;
-            }
-        }
-
         private static bool IsComponentSuffix(string suffix)
         {
             switch (suffix)
@@ -377,15 +340,6 @@ namespace TimboJimbo.PropertyBindings.Editor.Utility
                 default:
                     return false;
             }
-        }
-
-        private static string GetComponentPath(Dictionary<string, EditorCurveBinding> map, string primarySuffix, string altSuffix)
-        {
-            if (map.TryGetValue(primarySuffix, out var binding))
-                return binding.propertyName;
-            if (map.TryGetValue(altSuffix, out var altBinding))
-                return altBinding.propertyName;
-            return null;
         }
 
     }
