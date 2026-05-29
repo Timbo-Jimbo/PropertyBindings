@@ -181,9 +181,8 @@ namespace TimboJimboEditor
                                 
                                 case ValueKind.Reference:
                                 {
-                                    var (prevValueAsInt, postValueAsInt) = ParseModificationsAsInt(modification);
-                                    existingModification.PreModificationValue.ReferenceValue = EditorUtility.EntityIdToObject(prevValueAsInt);
-                                    existingModification.PostModificationValue.ReferenceValue = EditorUtility.EntityIdToObject(postValueAsInt);
+                                    existingModification.PreModificationValue.ReferenceValue = modification.previousValue.objectReference;
+                                    existingModification.PostModificationValue.ReferenceValue = modification.currentValue.objectReference;
                                     break;
                                 }
 
