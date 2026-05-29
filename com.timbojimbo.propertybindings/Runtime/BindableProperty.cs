@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Object = UnityEngine.Object;
 
 namespace TimboJimbo.PropertyBindings
