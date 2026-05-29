@@ -1,11 +1,11 @@
 {
-    "name": "TimboJimbo.PropertyBindings.Tests",
-    "rootNamespace": "TimboJimbo.PropertyBindings.Tests",
+    "name": "TimboJimboTests.PropertyBindings",
+    "rootNamespace": "TimboJimboTests.PropertyBindings",
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "TimboJimbo.PropertyBindings.Runtime",
-        "TimboJimbo.PropertyBindings.Editor"
+        "TimboJimboEditor.PropertyBindings"
     ],
     "includePlatforms": [
         "Editor"

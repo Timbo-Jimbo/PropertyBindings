@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace TimboJimbo.PropertyBindings.Tests
+namespace TimboJimboTests.PropertyBindings
 {
     // This class matches name of the script, which unity sees 
     // and since it doesnt derive from MonoBehaviour, unity seems to 

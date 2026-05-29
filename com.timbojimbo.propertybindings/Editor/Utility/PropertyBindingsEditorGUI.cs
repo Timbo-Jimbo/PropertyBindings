@@ -1,10 +1,11 @@
 using System;
 using System.Reflection;
+using TimboJimbo.PropertyBindings;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace TimboJimbo.PropertyBindings.Editor.Utility
+namespace TimboJimboEditor.PropertyBindings.Utility
 {
     public static class PropertyBindingsEditorGUI
     {

@@ -1,6 +1,6 @@
 {
-    "name": "TimboJimbo.PropertyBindings.Editor",
-    "rootNamespace": "TimboJimbo.PropertyBindings.Editor",
+    "name": "TimboJimboEditor.PropertyBindings",
+    "rootNamespace": "TimboJimboEditor.PropertyBindings",
     "references": [
         "TimboJimbo.PropertyBindings.Runtime"
     ],

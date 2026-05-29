@@ -4,7 +4,7 @@ using TimboJimboEditor;
 using UnityEditor;
 using UnityEngine;
 
-namespace TimboJimbo.PropertyBindings.Tests
+namespace TimboJimboTests.PropertyBindings
 {
     [TestFixture]
     public class UserEditTrackerTests

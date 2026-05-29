@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TimboJimbo.PropertyBindings;
 using TimboJimbo.PropertyBindings.Bindings;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Animations;
 using UnityEngine.Pool;
 using Object = UnityEngine.Object;
 
-namespace TimboJimbo.PropertyBindings.Editor.Utility
+namespace TimboJimboEditor.PropertyBindings.Utility
 {
     public static class BindablePropertyUtility
     {

@@ -1,12 +1,12 @@
 #if TJ_PROPERTY_BINDINGS_DEBUG_WINDOWS
 using System.Collections.Generic;
-using TimboJimbo.PropertyBindings.Editor.Utility;
+using TimboJimboEditor.PropertyBindings.Utility;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace TimboJimbo.PropertyBindings.Tests.Debugging
+namespace TimboJimboTests.PropertyBindings.Debugging
 {
     /// <summary>
     /// Editor window to test PropertyBindingCollection — reading, writing, and inspecting binding info.

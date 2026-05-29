@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using UnityEngine;
 
-namespace TimboJimbo.PropertyBindings.Tests
+namespace TimboJimboTests.PropertyBindings
 {    
     [TestFixture]
     public class PropertyBindingCollectionTests

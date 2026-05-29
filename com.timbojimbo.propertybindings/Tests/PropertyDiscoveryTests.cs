@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using NUnit.Framework;
-using TimboJimbo.PropertyBindings.Editor.Utility;
+using TimboJimboEditor.PropertyBindings.Utility;
 using UnityEngine;
 
-namespace TimboJimbo.PropertyBindings.Tests
+namespace TimboJimboTests.PropertyBindings
 {
     [TestFixture]
     public class PropertyDiscoveryTests

@@ -6,7 +6,7 @@ using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace TimboJimbo.PropertyBindings.Tests.Debugging
+namespace TimboJimboTests.PropertyBindings.Debugging
 {
     public sealed class UserEditTrackerTestWindow : EditorWindow
     {

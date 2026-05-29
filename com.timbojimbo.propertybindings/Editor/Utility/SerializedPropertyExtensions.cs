@@ -1,9 +1,10 @@
 using System;
+using TimboJimbo.PropertyBindings;
 using UnityEditor;
 
-namespace TimboJimbo.PropertyBindings.Editor
+namespace TimboJimboEditor.PropertyBindings
 {
-    public static class SerializedPropertyExtensions
+    internal static class SerializedPropertyExtensions
     {
         public static ValueContainer GetValueContainer(this SerializedProperty property, ValueKind kind)
         {

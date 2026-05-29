@@ -1,4 +1,4 @@
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("TimboJimbo.PropertyBindings.Tests")]
-[assembly: InternalsVisibleTo("TimboJimbo.PropertyBindings.Editor")]
+[assembly: InternalsVisibleTo("TimboJimboTests.PropertyBindings")]
+[assembly: InternalsVisibleTo("TimboJimboEditor.PropertyBindings")]
