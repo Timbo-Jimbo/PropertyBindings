@@ -4,7 +4,7 @@
 	"version": "0.3.0",
 	"unity": "6000.0",
 	"unityRelease": "0f1",
-	"description": "todo",
+	"description": "Lets you find and drive bindable properties on GameObjects.",
 	"dependencies": {
 		"com.unity.test-framework": "1.6.0"
 	},
