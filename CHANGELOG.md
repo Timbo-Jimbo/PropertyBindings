@@ -1,4 +1,9 @@
+## [0.3.0] - 01/06/2026
+
+- Added unclamped lerp variants to `ValueContainer` and `HSV/Oklab/Oklch`
+
 ## [0.2.0] - 29/05/2026
+
 - Added `CHANGELOG.md`
 - Fixed `UserEditTracker` throwing error when handing reference value kinds
 - Improved inspector for `ValueContainer`

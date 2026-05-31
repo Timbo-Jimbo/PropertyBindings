@@ -65,13 +65,6 @@ namespace TimboJimbo.PropertyBindings
     }
 
     [Serializable]
-    public struct LerpConfig
-    {
-        public InterpolationConfig Interpolation;
-        public DiscreteValueSelectionMode DiscreteValueSelection;
-    }
-
-    [Serializable]
     public struct ValueContainer : IEquatable<ValueContainer>
     {
         public ValueKind Kind;
@@ -298,7 +291,9 @@ namespace TimboJimbo.PropertyBindings
             }
         }
 
-        public static ValueContainer Lerp(in ValueContainer from, in ValueContainer to, float t, in LerpConfig config = default)
+        public static ValueContainer Lerp(in ValueContainer from, in ValueContainer to, float t, in InterpolationConfig interpolation, DiscreteValueSelectionMode discreteValueSelection)
+            => LerpUnclamped(from, to, Mathf.Clamp01(t), interpolation, discreteValueSelection);
+        public static ValueContainer LerpUnclamped(in ValueContainer from, in ValueContainer to, float t, in InterpolationConfig interpolation, DiscreteValueSelectionMode discreteValueSelection)
         {
             PropBindingsAssert.AreEqual(from.Kind, to.Kind);
 
@@ -307,23 +302,23 @@ namespace TimboJimbo.PropertyBindings
             switch (from.Kind)
             {
                 case ValueKind.Float:
-                    return new ValueContainer { FloatValue = Mathf.Lerp(from.FloatValue, to.FloatValue, t) };
+                    return new ValueContainer { FloatValue = Mathf.LerpUnclamped(from.FloatValue, to.FloatValue, t) };
                 case ValueKind.Color:
-                    switch (config.Interpolation.Color)
+                    switch (interpolation.Color)
                     {
                         case ColorInterpolationMode.RGB:
-                            return new ValueContainer { ColorValue = Color.Lerp(from.ColorValue, to.ColorValue, t) };
+                            return new ValueContainer { ColorValue = Color.LerpUnclamped(from.ColorValue, to.ColorValue, t) };
                         case ColorInterpolationMode.HSV:
-                            return new ValueContainer { ColorValue = ColorExtra.LerpHSV(from.ColorValue, to.ColorValue, t) };
+                            return new ValueContainer { ColorValue = ColorExtra.LerpUnclampedHSV(from.ColorValue, to.ColorValue, t) };
                         case ColorInterpolationMode.OkLab:
-                            return new ValueContainer { ColorValue = ColorExtra.LerpOkLab(from.ColorValue, to.ColorValue, t) };
+                            return new ValueContainer { ColorValue = ColorExtra.LerpUnclampedOkLab(from.ColorValue, to.ColorValue, t) };
                         case ColorInterpolationMode.OkLCh:
-                            return new ValueContainer { ColorValue = ColorExtra.LerpOkLCh(from.ColorValue, to.ColorValue, t) };
+                            return new ValueContainer { ColorValue = ColorExtra.LerpUnclampedOkLCh(from.ColorValue, to.ColorValue, t) };
                         default:
-                            throw new NotImplementedException($"Unsupported color interpolation mode: {config.Interpolation.Color}");
+                            throw new NotImplementedException($"Unsupported color interpolation mode: {interpolation.Color}");
                     }
                 case ValueKind.Quaternion:
-                    switch (config.Interpolation.Rotation)
+                    switch (interpolation.Rotation)
                     {
                         case RotationInterpolationMode.EulerLerp:
                             {
@@ -345,43 +340,43 @@ namespace TimboJimbo.PropertyBindings
                                 return new ValueContainer { QuaternionValue = Quaternion.Euler(euler) };
                             }
                         case RotationInterpolationMode.QuaternionLerp:
-                            return new ValueContainer { QuaternionValue = Quaternion.Lerp(from.QuaternionValue, to.QuaternionValue, t) };
+                            return new ValueContainer { QuaternionValue = Quaternion.LerpUnclamped(from.QuaternionValue, to.QuaternionValue, t) };
                         case RotationInterpolationMode.QuaternionSlerp:
-                            return new ValueContainer { QuaternionValue = Quaternion.Slerp(from.QuaternionValue, to.QuaternionValue, t) };
+                            return new ValueContainer { QuaternionValue = Quaternion.SlerpUnclamped(from.QuaternionValue, to.QuaternionValue, t) };
                         default:
-                            throw new NotImplementedException($"Unsupported rotation interpolation mode: {config.Interpolation.Rotation}");
+                            throw new NotImplementedException($"Unsupported rotation interpolation mode: {interpolation.Rotation}");
                     }
                 case ValueKind.Vector2:
-                    switch (config.Interpolation.Vector2)
+                    switch (interpolation.Vector2)
                     {
                         case VectorInterpolationMode.Lerp:
-                            return new ValueContainer { Vector2Value = Vector2.Lerp(from.Vector2Value, to.Vector2Value, t) };
+                            return new ValueContainer { Vector2Value = Vector2.LerpUnclamped(from.Vector2Value, to.Vector2Value, t) };
                         case VectorInterpolationMode.Slerp:
-                            return new ValueContainer { Vector2Value = Vector3.Slerp(from.Vector2Value, to.Vector2Value, t) }; // Vector2 doesn't have a slerp..? or...sircular..lerp...?!
+                            return new ValueContainer { Vector2Value = Vector3.SlerpUnclamped(from.Vector2Value, to.Vector2Value, t) }; // Vector2 doesn't have a slerp..? or...sircular..lerp...?!
                         default:
-                            throw new NotImplementedException($"Unsupported vector interpolation mode: {config.Interpolation.Vector2}");
+                            throw new NotImplementedException($"Unsupported vector interpolation mode: {interpolation.Vector2}");
                     }
                 case ValueKind.Vector3:
-                    switch (config.Interpolation.Vector3)
+                    switch (interpolation.Vector3)
                     {
                         case VectorInterpolationMode.Lerp:
-                            return new ValueContainer { Vector3Value = Vector3.Lerp(from.Vector3Value, to.Vector3Value, t) };
+                            return new ValueContainer { Vector3Value = Vector3.LerpUnclamped(from.Vector3Value, to.Vector3Value, t) };
                         case VectorInterpolationMode.Slerp:
-                            return new ValueContainer { Vector3Value = Vector3.Slerp(from.Vector3Value, to.Vector3Value, t) };
+                            return new ValueContainer { Vector3Value = Vector3.SlerpUnclamped(from.Vector3Value, to.Vector3Value, t) };
                         default:
-                            throw new NotImplementedException($"Unsupported vector interpolation mode: {config.Interpolation.Vector3}");
+                            throw new NotImplementedException($"Unsupported vector interpolation mode: {interpolation.Vector3}");
                     }
 
                 case ValueKind.Vector4:
-                    return new ValueContainer { Vector4Value = Vector4.Lerp(from.Vector4Value, to.Vector4Value, t) };
+                    return new ValueContainer { Vector4Value = Vector4.LerpUnclamped(from.Vector4Value, to.Vector4Value, t) };
 
                 default:
-                    return config.DiscreteValueSelection switch
+                    return discreteValueSelection switch
                     {
                         DiscreteValueSelectionMode.Nearest => t < 0.5f ? from : to,
                         DiscreteValueSelectionMode.LeftSide => from,
                         DiscreteValueSelectionMode.RightSide => to,
-                        _ => throw new NotImplementedException($"Unsupported discrete value selection mode: {config.DiscreteValueSelection}")
+                        _ => throw new NotImplementedException($"Unsupported discrete value selection mode: {discreteValueSelection}")
                     };
             }
         }

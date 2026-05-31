@@ -30,8 +30,13 @@ namespace TimboJimbo.PropertyBindings
         {
             return OkLabToColor(OkLChToOkLab(new Vector3(l, c, h)), withAlpha ?? 1f);
         }
-
+        
         public static Color LerpHSV(Color from, Color to, float t)
+        {
+            return LerpUnclampedHSV(from, to, Mathf.Clamp01(t));
+        }
+
+        public static Color LerpUnclampedHSV(Color from, Color to, float t)
         {
             Color.RGBToHSV(from, out float fromH, out float fromS, out float fromV);
             Color.RGBToHSV(to, out float toH, out float toS, out float toV);
@@ -45,32 +50,42 @@ namespace TimboJimbo.PropertyBindings
                     toH += 1f; // wrap around up
             }
 
-            float h = Mathf.Lerp(fromH, toH, t);
-            float s = Mathf.Lerp(fromS, toS, t);
-            float v = Mathf.Lerp(fromV, toV, t);
+            float h = Mathf.LerpUnclamped(fromH, toH, t);
+            float s = Mathf.LerpUnclamped(fromS, toS, t);
+            float v = Mathf.LerpUnclamped(fromV, toV, t);
 
             // ensure hue is in [0, 1] range after lerp
             if (h < 0f) h += 1f;
             else if (h > 1f) h -= 1f;
 
             Color result = Color.HSVToRGB(h, s, v);
-            result.a = Mathf.Lerp(from.a, to.a, t);
+            result.a = Mathf.LerpUnclamped(from.a, to.a, t);
             return result;
         }
 
         public static Color LerpOkLab(Color from, Color to, float t)
         {
+            return LerpUnclampedOkLab(from, to, Mathf.Clamp01(t));
+        }
+
+        public static Color LerpUnclampedOkLab(Color from, Color to, float t)
+        {
             RGBToOkLab(from, out float fromL, out float fromA, out float fromB);
             RGBToOkLab(to, out float toL, out float toA, out float toB);
 
-            float l = Mathf.Lerp(fromL, toL, t);
-            float a = Mathf.Lerp(fromA, toA, t);
-            float b = Mathf.Lerp(fromB, toB, t);
+            float l = Mathf.LerpUnclamped(fromL, toL, t);
+            float a = Mathf.LerpUnclamped(fromA, toA, t);
+            float b = Mathf.LerpUnclamped(fromB, toB, t);
 
-            return OkLabToRGB(l, a, b, withAlpha: Mathf.Lerp(from.a, to.a, t));
+            return OkLabToRGB(l, a, b, withAlpha: Mathf.LerpUnclamped(from.a, to.a, t));
         }
 
         public static Color LerpOkLCh(Color from, Color to, float t)
+        {
+            return LerpUnclampedOkLCh(from, to, Mathf.Clamp01(t));
+        }
+
+        public static Color LerpUnclampedOkLCh(Color from, Color to, float t)
         {
             RGBToOkLCh(from, out float fromL, out float fromC, out float fromH);
             RGBToOkLCh(to, out float toL, out float toC, out float toH);
@@ -84,15 +99,15 @@ namespace TimboJimbo.PropertyBindings
                     toH += 2f * Mathf.PI;
             }
 
-            float l = Mathf.Lerp(fromL, toL, t);
-            float c = Mathf.Lerp(fromC, toC, t);
-            float h = Mathf.Lerp(fromH, toH, t);
+            float l = Mathf.LerpUnclamped(fromL, toL, t);
+            float c = Mathf.LerpUnclamped(fromC, toC, t);
+            float h = Mathf.LerpUnclamped(fromH, toH, t);
 
             // normalize hue back to [-π, π]
             if (h > Mathf.PI) h -= 2f * Mathf.PI;
             else if (h < -Mathf.PI) h += 2f * Mathf.PI;
 
-            return OkLChToRGB(l, c, h, withAlpha: Mathf.Lerp(from.a, to.a, t));
+            return OkLChToRGB(l, c, h, withAlpha: Mathf.LerpUnclamped(from.a, to.a, t));
         }
 
         private static Color EnsureLinear(Color c) 
