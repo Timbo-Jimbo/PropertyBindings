@@ -1,3 +1,7 @@
+## [0.3.1] - 04/06/2026
+
+- Updated Readme.
+
 ## [0.3.0] - 01/06/2026
 
 - Added unclamped lerp variants to `ValueContainer` and `HSV/Oklab/Oklch`

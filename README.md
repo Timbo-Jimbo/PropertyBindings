@@ -5,6 +5,38 @@ Lets you find and drive bindable properties on GameObjects
 > [!WARNING]
 > This package is new - use at your own risk! :)
 
+# Installation
+
+This package is available on [OpenUPM](https://openupm.com/packages/com.timbojimbo.propertybindings)
+
+1. Add the Scoped Registry:
+	- Open **Edit > Project Settings > Package Manager**
+	- Add a new Scoped Registry (or append the missing scope if you already have one):
+		- Name: `OpenUPM`
+		- URL: `https://package.openupm.com/`
+		- Scope(s): `com.timbojimbo`
+2. Install the package
+	- Open **Window > Package Manager**
+	- Click Add and select **Add package by name...**
+	- Paste name: `com.timbojimbo.propertybindings`
+
+Done!
+
+
+> [!WARNING]
+> This package is new - use at your own risk! :)
+
+<details>
+<summary>Install from GitHub instead (Not Recommended)</summary>
+
+You can also add it directly from GitHub on Unity 2019.4+. Note that you won't be able to receive updates through Package Manager this way, you'll have to update manually.
+
+- Open **Window > Package Manager**
+- Click Add and select **Add package from git URL...**
+- Paste `https://github.com/Timbo-Jimbo/PropertyBindings.git?path=Packages/com.timbojimbo.propertybindings`
+</details>
+
+
 ## BindableProperty
 
 Bindable properties are discovered via [editor utility](https://github.com/Timbo-Jimbo/PropertyBindings/blob/main/com.timbojimbo.propertybindings/Editor/Utility/BindablePropertyUtility.cs#L15). They hold within them all the information needed to bind to a specific property on a specific instance of an object. 
