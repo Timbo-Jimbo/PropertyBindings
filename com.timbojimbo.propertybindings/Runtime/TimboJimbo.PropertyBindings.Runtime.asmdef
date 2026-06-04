@@ -1,7 +1,9 @@
 {
     "name": "TimboJimbo.PropertyBindings.Runtime",
     "rootNamespace": "TimboJimbo.PropertyBindings",
-    "references": [],
+    "references": [
+        "TimboJimbo.Core.Runtime"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
