@@ -1,3 +1,7 @@
+## [0.4.0] - 04/06/2026
+
+- Moved some shared code to Core package
+
 ## [0.3.1] - 04/06/2026
 
 - Updated Readme.
