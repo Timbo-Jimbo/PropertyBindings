@@ -1,4 +1,5 @@
 using System;
+using TimboJimbo.Core;
 using TimboJimbo.Core.Utility;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -35,25 +36,6 @@ namespace TimboJimbo.PropertyBindings
     {
         Lerp,
         Slerp,
-    }
-
-    public enum ColorInterpolationMode
-    {
-        [InspectorName("RGB")]
-        RGB,
-        [InspectorName("HSV")]
-        HSV,
-        [InspectorName("OkLab")]
-        OkLab,
-        [InspectorName("OkLCh")]
-        OkLCh,
-    }
-
-    public enum DiscreteValueSelectionMode
-    {
-        Nearest,
-        LeftSide,
-        RightSide,
     }
 
     [Serializable]
