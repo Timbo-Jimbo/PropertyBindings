@@ -1,3 +1,7 @@
+## [0.6.1] - 21/06/2026
+
+- Removed some leftover debug logs
+
 ## [0.6.0] - 21/06/2026
 
 - `PropertyBindingCollection.Bindings` (dictionary) replaced with `Properties` (read-only list)
