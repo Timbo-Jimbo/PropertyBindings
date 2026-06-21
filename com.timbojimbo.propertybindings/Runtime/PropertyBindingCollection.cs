@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using TimboJimbo.Core.Utility;
 using TimboJimbo.PropertyBindings.Bindings;
@@ -11,20 +12,33 @@ namespace TimboJimbo.PropertyBindings
     public sealed class PropertyBindingCollection : IDisposable
     {
         private readonly Dictionary<BindableProperty, IPropertyBinding> _bindings = new Dictionary<BindableProperty, IPropertyBinding>(new BindablePropertyEqualityComparer());
+        private readonly IReadOnlyList<BindableProperty> _properties;
         private int _bulkWriteRequestCount = 0;
         private HashSet<Object> _targetsToNotifyAfterBulkWrite = new HashSet<Object>();
 
-        public IReadOnlyDictionary<BindableProperty, IPropertyBinding> Bindings => _bindings;
-        
+        public IReadOnlyList<BindableProperty> Properties => _properties;
+
         private PropertyBindingCollection(GameObject root, IReadOnlyList<BindableProperty> properties)
         {
             foreach (var property in properties)
                 _bindings[property] = PropertyBindingRegistry.Create(root, property);
+            _properties = properties.ToList().AsReadOnly(); // create a copy to ensure immutability
         }
 
         public static PropertyBindingCollection Bind(GameObject root, IReadOnlyList<BindableProperty> properties)
         {
             return new PropertyBindingCollection(root, properties);
+        }
+        
+        public bool TryGetBindingType(BindableProperty property, out Type bindingType)
+        {
+            bindingType = null;
+            if (_bindings.TryGetValue(property, out var binding))
+            {
+                bindingType = binding.GetType();
+                return true;
+            }
+            return false;
         }
 
         public bool TryRead(BindableProperty property, out ValueContainer valueContainer)
@@ -44,8 +58,26 @@ namespace TimboJimbo.PropertyBindings
             return false;
         }
 
+        /// <summary>
+        /// Write to a property. Will attempt a direct write if no bulk write scope is active, otherwise will attempt a bulk write. 
+        /// This is the recommended way to write to properties.
+        /// </summary>
         public bool TryWrite(BindableProperty property, ValueContainer valueContainer)
         {
+            if (_bulkWriteRequestCount > 0)
+                return TryBulkWrite(property, valueContainer);
+
+            return TryDirectWrite(property, valueContainer);
+        }
+
+        /// <summary>
+        /// Write to a property directly. Will throw if a bulk write scope is active. Prefer TryWrite() in general, and use TryDirectWrite if you want to enforce that writes happen immediately.
+        /// </summary>
+        public bool TryDirectWrite(BindableProperty property, ValueContainer valueContainer)
+        {
+            if (_bulkWriteRequestCount > 0)
+                throw new InvalidOperationException("Bulk write in progress. Call TryBulkWrite() to write during a bulk write operation.");
+
             if (!_bindings.TryGetValue(property, out var binding))
                 return false;
 
@@ -60,7 +92,7 @@ namespace TimboJimbo.PropertyBindings
             return true;
         }
 
-        public BulkPropertyWriter StartBulkWriteScope() => new BulkPropertyWriter(this);
+        public BulkWriteScope StartBulkWriteScope() => new BulkWriteScope(this);
 
         public void StartBulkWrite()
         {
@@ -72,6 +104,9 @@ namespace TimboJimbo.PropertyBindings
                 _targetsToNotifyAfterBulkWrite.Clear();
         }
 
+        /// <summary>
+        /// Attempt to write to a property as part of a bulk write operation. Will throw if no bulk write is in progress. Prefer TryWrite() in general, and use TryBulkWrite if you want to ensure writes happen as part of a bulk write operation.
+        /// </summary>
         public bool TryBulkWrite(BindableProperty property, ValueContainer valueContainer)
         {
             var bulkWriteInProgress = _bulkWriteRequestCount > 0;
@@ -147,19 +182,14 @@ namespace TimboJimbo.PropertyBindings
         }
     }
 
-    public struct BulkPropertyWriter : IDisposable
+    public struct BulkWriteScope : IDisposable
     {
         private readonly PropertyBindingCollection _collection;
 
-        public BulkPropertyWriter(PropertyBindingCollection collection)
+        public BulkWriteScope(PropertyBindingCollection collection)
         {
             _collection = collection;
             _collection.StartBulkWrite();
-        }
-
-        public bool TryWrite(BindableProperty property, ValueContainer valueContainer)
-        {
-            return _collection.TryBulkWrite(property, valueContainer);
         }
 
         public void Dispose()

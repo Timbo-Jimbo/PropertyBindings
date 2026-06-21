@@ -2,6 +2,18 @@ using UnityEngine;
 
 namespace TimboJimboTests.PropertyBindings
 {
+    [System.Serializable]
+    internal struct ArrayStructValue
+    {
+        public float Value;
+    }
+
+    [System.Serializable]
+    internal class ArrayClassValue
+    {
+        public float Value;
+    }
+
     // This class matches name of the script, which unity sees 
     // and since it doesnt derive from MonoBehaviour, unity seems to 
     // suppress a bunch of warnings about editor-only componentes
@@ -45,5 +57,13 @@ namespace TimboJimboTests.PropertyBindings
     {
         [field: SerializeField]
         public float Test { get; set; }
+    }
+
+    internal class ArrayPropertyBag : MonoBehaviour
+    {
+        public int[] PrimitiveArray;
+        public ArrayStructValue[] StructArray;
+        public ArrayClassValue[] ClassArray;
+        public int[][] NestedPrimitiveArrays;
     }
 }

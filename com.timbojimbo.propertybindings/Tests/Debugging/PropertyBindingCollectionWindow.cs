@@ -1,4 +1,5 @@
 #if TJ_PROPERTY_BINDINGS_DEBUG_WINDOWS
+using System;
 using System.Collections.Generic;
 using TimboJimbo.PropertyBindings;
 using TimboJimboEditor.PropertyBindings.Utility;
@@ -359,8 +360,8 @@ namespace TimboJimboTests.PropertyBindings.Debugging
 
                     case ColBinding:
                         if (data.Type == NodeType.Property && _window._collection != null
-                            && _window._collection.Bindings.TryGetValue(data.Property, out var binding))
-                            EditorGUI.LabelField(rect, binding.GetType().Name, EditorStyles.miniLabel);
+                            && _window._collection.TryGetBindingType(data.Property, out var bindingType))
+                            EditorGUI.LabelField(rect, bindingType.Name, EditorStyles.miniLabel);
                         break;
 
                     case ColValue:

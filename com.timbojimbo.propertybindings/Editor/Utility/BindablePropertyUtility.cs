@@ -30,7 +30,7 @@ namespace TimboJimboEditor.PropertyBindings.Utility
 
                 resultBuffer.Clear();
 
-                GetBindablePropertiesFromSerializedObject(target, recursive, resultBuffer, filterOut: bp => bp.Kind != ValueKind.String);
+                GetBindablePropertiesFromSerializedObject(target, recursive, resultBuffer);
 
                 foreach (var prop in resultBuffer)
                 {
@@ -91,6 +91,11 @@ namespace TimboJimboEditor.PropertyBindings.Utility
                                     continue;
 
                                 output.Add(bindableProperty);
+                                Debug.Log($"Added BindableProperty for {target.name} ({target.GetType().Name}) property '{sp.propertyPath}' of type {sp.propertyType}");
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"Failed to create BindableProperty for {target.name} ({target.GetType().Name}) property '{sp.propertyPath}' of type {sp.propertyType}");
                             }
                         }
                     }

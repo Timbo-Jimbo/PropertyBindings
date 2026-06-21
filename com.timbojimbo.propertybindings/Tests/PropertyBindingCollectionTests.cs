@@ -1,6 +1,8 @@
+using System;
 using NUnit.Framework;
 using TimboJimbo.PropertyBindings;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace TimboJimboTests.PropertyBindings
 {    
@@ -14,6 +16,7 @@ namespace TimboJimboTests.PropertyBindings
         NotifyOnWrite _notifyComp;
         PrivatePropertyBag _privateBag;
         SerializedFieldPropertyBag _serializedFieldBag;
+        ArrayPropertyBag _arrayBag;
 
         [SetUp]
         public void SetUp()
@@ -26,6 +29,7 @@ namespace TimboJimboTests.PropertyBindings
             _notifyComp = _go.AddComponent<NotifyOnWrite>();
             _privateBag = _go.AddComponent<PrivatePropertyBag>();
             _serializedFieldBag = _go.AddComponent<SerializedFieldPropertyBag>();
+            _arrayBag = _go.AddComponent<ArrayPropertyBag>();
         }
 
         [TearDown]
@@ -87,10 +91,10 @@ namespace TimboJimboTests.PropertyBindings
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { propA, propB }))
             {
-                using (var bulkWriter = collection.StartBulkWriteScope())
+                using (collection.StartBulkWriteScope())
                 {
-                    Assert.IsTrue(bulkWriter.TryWrite(propA, ValueContainer.FromFloat(100f)));
-                    Assert.IsTrue(bulkWriter.TryWrite(propB, ValueContainer.FromFloat(200f)));
+                    Assert.IsTrue(collection.TryWrite(propA, ValueContainer.FromFloat(100f)));
+                    Assert.IsTrue(collection.TryWrite(propB, ValueContainer.FromFloat(200f)));
                 }
 
                 Assert.AreEqual(100f, _comp.TestFloatA, 0.001f);
@@ -107,12 +111,39 @@ namespace TimboJimboTests.PropertyBindings
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
-                using(var outerBulkWriter = collection.StartBulkWriteScope())
-                using (var innerBulkWriter = collection.StartBulkWriteScope())
+                using(collection.StartBulkWriteScope())
+                using (collection.StartBulkWriteScope())
                 {
                     Assert.IsTrue(collection.TryBulkWrite(prop, ValueContainer.FromFloat(42f)));
                     Assert.AreEqual(42f, _comp.TestFloatA, 0.001f);
                 }
+            }
+        }
+
+        [Test]
+        public void TryDirectWrite_Throws_DuringBulkWriteScope()
+        {
+            var prop = BindableProperty.CreateScalar(_comp, nameof(PropertyBag.TestFloatA), ValueKind.Float);
+
+            using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
+            {
+                using (collection.StartBulkWriteScope())
+                {
+                    Assert.Throws<InvalidOperationException>(() =>
+                        collection.TryDirectWrite(prop, ValueContainer.FromFloat(42f)));
+                }
+            }
+        }
+
+        [Test]
+        public void TryBulkWrite_Throws_WhenNoBulkWriteInProgress()
+        {
+            var prop = BindableProperty.CreateScalar(_comp, nameof(PropertyBag.TestFloatA), ValueKind.Float);
+
+            using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
+            {
+                Assert.Throws<InvalidOperationException>(() =>
+                    collection.TryBulkWrite(prop, ValueContainer.FromFloat(42f)));
             }
         }
 
@@ -229,9 +260,9 @@ namespace TimboJimboTests.PropertyBindings
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
-                using (var bulkWriter = collection.StartBulkWriteScope())
+                using (collection.StartBulkWriteScope())
                 {
-                    Assert.IsTrue(bulkWriter.TryWrite(prop, ValueContainer.FromQuaternion(Quaternion.identity)));
+                    Assert.IsTrue(collection.TryWrite(prop, ValueContainer.FromQuaternion(Quaternion.identity)));
                 }
 
                 Assert.AreEqual(Quaternion.identity, _comp.TestQuaternion);
@@ -266,9 +297,9 @@ namespace TimboJimboTests.PropertyBindings
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
-                using (var bulkWriter = collection.StartBulkWriteScope())
+                using (collection.StartBulkWriteScope())
                 {
-                    Assert.IsTrue(bulkWriter.TryWrite(prop, ValueContainer.FromFloat(99f)));
+                    Assert.IsTrue(collection.TryWrite(prop, ValueContainer.FromFloat(99f)));
 
                     // During bulk write, notification should NOT have been called yet
                     Assert.IsFalse(_notifyComp.DidApplyAnimationPropertiesBeenCalled,
@@ -337,9 +368,9 @@ namespace TimboJimboTests.PropertyBindings
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
-                using (var bulkWriter = collection.StartBulkWriteScope())
+                using (collection.StartBulkWriteScope())
                 {
-                    Assert.IsTrue(bulkWriter.TryWrite(prop, ValueContainer.FromFloat(123f)));
+                    Assert.IsTrue(collection.TryWrite(prop, ValueContainer.FromFloat(123f)));
                 }
 
                 Assert.AreEqual(123f, _serializedFieldBag.Test, 0.001f);
@@ -376,9 +407,9 @@ namespace TimboJimboTests.PropertyBindings
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
-                using (var bulkWriter = collection.StartBulkWriteScope())
+                using (collection.StartBulkWriteScope())
                 {
-                    Assert.IsTrue(bulkWriter.TryWrite(prop, ValueContainer.FromFloat(77f)));
+                    Assert.IsTrue(collection.TryWrite(prop, ValueContainer.FromFloat(77f)));
                 }
 
                 Assert.AreEqual(77f, _privateBag.GetTest(), 0.001f);
@@ -531,16 +562,110 @@ namespace TimboJimboTests.PropertyBindings
                 Assert.AreEqual(Color.magenta, cRead.ColorValue);
 
                 // Bulk write all
-                using (var bulkWriter = collection.StartBulkWriteScope())
+                using (collection.StartBulkWriteScope())
                 {
-                    Assert.IsTrue(bulkWriter.TryWrite(props[0], ValueContainer.FromVector2(Vector2.right)));
-                    Assert.IsTrue(bulkWriter.TryWrite(props[1], ValueContainer.FromVector3(Vector3.up)));
-                    Assert.IsTrue(bulkWriter.TryWrite(props[2], ValueContainer.FromColor(Color.cyan)));
+                    Assert.IsTrue(collection.TryWrite(props[0], ValueContainer.FromVector2(Vector2.right)));
+                    Assert.IsTrue(collection.TryWrite(props[1], ValueContainer.FromVector3(Vector3.up)));
+                    Assert.IsTrue(collection.TryWrite(props[2], ValueContainer.FromColor(Color.cyan)));
                 }
 
                 Assert.AreEqual(Vector2.right, _comp.TestVector2);
                 Assert.AreEqual(Vector3.up, _comp.TestVector3);
                 Assert.AreEqual(Color.cyan, _comp.TestColor);
+            }
+        }
+
+        // ───────────── Array Path Tests ─────────────
+
+        [Test]
+        public void PrimitiveArray_Element_ReadWrite()
+        {
+            _arrayBag.PrimitiveArray = new[] { 10, 20, 30 };
+
+            var prop = BindableProperty.CreateScalar(_arrayBag, "PrimitiveArray.Array.data[1]", ValueKind.Int);
+
+            using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
+            {
+                Assert.IsTrue(collection.TryRead(prop, out var read));
+                Assert.AreEqual(20, read.IntValue);
+
+                Assert.IsTrue(collection.TryWrite(prop, ValueContainer.FromInt(99)));
+                Assert.AreEqual(99, _arrayBag.PrimitiveArray[1]);
+
+                Assert.IsTrue(collection.TryRead(prop, out var readBack));
+                Assert.AreEqual(99, readBack.IntValue);
+            }
+        }
+
+        [Test]
+        public void StructArray_Member_ReadWrite()
+        {
+            _arrayBag.StructArray = new[]
+            {
+                new ArrayStructValue { Value = 1.5f },
+                new ArrayStructValue { Value = 2.5f },
+            };
+
+            var prop = BindableProperty.CreateScalar(_arrayBag, "StructArray.Array.data[0].Value", ValueKind.Float);
+
+            using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
+            {
+                Assert.IsTrue(collection.TryRead(prop, out var read));
+                Assert.AreEqual(1.5f, read.FloatValue, 0.001f);
+
+                Assert.IsTrue(collection.TryWrite(prop, ValueContainer.FromFloat(7.25f)));
+                Assert.AreEqual(7.25f, _arrayBag.StructArray[0].Value, 0.001f);
+
+                Assert.IsTrue(collection.TryRead(prop, out var readBack));
+                Assert.AreEqual(7.25f, readBack.FloatValue, 0.001f);
+            }
+        }
+
+        [Test]
+        public void ClassArray_Member_ReadWrite()
+        {
+            _arrayBag.ClassArray = new[]
+            {
+                new ArrayClassValue { Value = 3.5f },
+                new ArrayClassValue { Value = 4.5f },
+            };
+
+            var prop = BindableProperty.CreateScalar(_arrayBag, "ClassArray.Array.data[1].Value", ValueKind.Float);
+
+            using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
+            {
+                Assert.IsTrue(collection.TryRead(prop, out var read));
+                Assert.AreEqual(4.5f, read.FloatValue, 0.001f);
+
+                Assert.IsTrue(collection.TryWrite(prop, ValueContainer.FromFloat(8.75f)));
+                Assert.AreEqual(8.75f, _arrayBag.ClassArray[1].Value, 0.001f);
+
+                Assert.IsTrue(collection.TryRead(prop, out var readBack));
+                Assert.AreEqual(8.75f, readBack.FloatValue, 0.001f);
+            }
+        }
+
+        [Test]
+        public void NestedPrimitiveArrays_Element_ReadWrite()
+        {
+            _arrayBag.NestedPrimitiveArrays = new[]
+            {
+                new[] { 1, 2, 3 },
+                new[] { 4, 5, 6 },
+            };
+
+            var prop = BindableProperty.CreateScalar(_arrayBag, "NestedPrimitiveArrays.Array.data[1].Array.data[2]", ValueKind.Int);
+
+            using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
+            {
+                Assert.IsTrue(collection.TryRead(prop, out var read));
+                Assert.AreEqual(6, read.IntValue);
+
+                Assert.IsTrue(collection.TryWrite(prop, ValueContainer.FromInt(42)));
+                Assert.AreEqual(42, _arrayBag.NestedPrimitiveArrays[1][2]);
+
+                Assert.IsTrue(collection.TryRead(prop, out var readBack));
+                Assert.AreEqual(42, readBack.IntValue);
             }
         }
     }

@@ -72,6 +72,7 @@ namespace TimboJimbo.PropertyBindings.Bindings
 
         protected override bool TryWriteToTarget(ValueContainer valueContainer)
         {
+            Debug.Log($"Attempting to write value to Graphic property '{_property}' on '{_graphic.name}'. Value: {valueContainer}");
             if (_graphic == null)
                 return false;
 

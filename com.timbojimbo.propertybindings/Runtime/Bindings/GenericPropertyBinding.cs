@@ -47,7 +47,9 @@ namespace TimboJimbo.PropertyBindings.Bindings
                 ValueKind.Quaternion => true,
                 ValueKind.Reference => true,
                 _ => false
-            };
+            } &&
+            !property.Path.Contains('['); // Unitys Generic Binding system does not support arrays
+
 
         public GenericPropertyBinding(
             GameObject root,
