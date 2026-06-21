@@ -1,3 +1,13 @@
+## [0.6.0] - 21/06/2026
+
+- `PropertyBindingCollection.Bindings` (dictionary) replaced with `Properties` (read-only list)
+- `StartBulkWriteScope()` renamed to `BulkWriteScope()`
+- `TryWrite()` now automatically delegates to bulk or direct write depending on whether a bulk scope is active
+- Added `TryDirectWrite()` for writes that must happen immediately (throws if bulk scope is active)
+- Added `TryGetBindingType()` to query the binding type for a property
+- `ReflectionPropertyBinding`: Complete rewrite of property path resolution to support nested paths (dot notation) and array/list index access
+- `GenericPropertyBinding`: Fixed to exclude array element properties, which Unity's Generic Binding system does not support
+
 ## [0.5.0] - 04/06/2026
 
 - Moved yet more shared code to Core package
