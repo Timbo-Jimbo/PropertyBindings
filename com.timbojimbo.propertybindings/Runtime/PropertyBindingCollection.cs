@@ -92,7 +92,7 @@ namespace TimboJimbo.PropertyBindings
             return true;
         }
 
-        public BulkWriteScope StartBulkWriteScope() => new BulkWriteScope(this);
+        public BulkWriteScope BulkWriteScope() => new BulkWriteScope(this);
 
         public void StartBulkWrite()
         {

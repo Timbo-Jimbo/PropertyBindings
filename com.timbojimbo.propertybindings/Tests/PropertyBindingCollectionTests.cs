@@ -91,7 +91,7 @@ namespace TimboJimboTests.PropertyBindings
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { propA, propB }))
             {
-                using (collection.StartBulkWriteScope())
+                using (collection.BulkWriteScope())
                 {
                     Assert.IsTrue(collection.TryWrite(propA, ValueContainer.FromFloat(100f)));
                     Assert.IsTrue(collection.TryWrite(propB, ValueContainer.FromFloat(200f)));
@@ -111,8 +111,8 @@ namespace TimboJimboTests.PropertyBindings
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
-                using(collection.StartBulkWriteScope())
-                using (collection.StartBulkWriteScope())
+                using(collection.BulkWriteScope())
+                using (collection.BulkWriteScope())
                 {
                     Assert.IsTrue(collection.TryBulkWrite(prop, ValueContainer.FromFloat(42f)));
                     Assert.AreEqual(42f, _comp.TestFloatA, 0.001f);
@@ -127,7 +127,7 @@ namespace TimboJimboTests.PropertyBindings
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
-                using (collection.StartBulkWriteScope())
+                using (collection.BulkWriteScope())
                 {
                     Assert.Throws<InvalidOperationException>(() =>
                         collection.TryDirectWrite(prop, ValueContainer.FromFloat(42f)));
@@ -260,7 +260,7 @@ namespace TimboJimboTests.PropertyBindings
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
-                using (collection.StartBulkWriteScope())
+                using (collection.BulkWriteScope())
                 {
                     Assert.IsTrue(collection.TryWrite(prop, ValueContainer.FromQuaternion(Quaternion.identity)));
                 }
@@ -297,7 +297,7 @@ namespace TimboJimboTests.PropertyBindings
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
-                using (collection.StartBulkWriteScope())
+                using (collection.BulkWriteScope())
                 {
                     Assert.IsTrue(collection.TryWrite(prop, ValueContainer.FromFloat(99f)));
 
@@ -368,7 +368,7 @@ namespace TimboJimboTests.PropertyBindings
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
-                using (collection.StartBulkWriteScope())
+                using (collection.BulkWriteScope())
                 {
                     Assert.IsTrue(collection.TryWrite(prop, ValueContainer.FromFloat(123f)));
                 }
@@ -407,7 +407,7 @@ namespace TimboJimboTests.PropertyBindings
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
-                using (collection.StartBulkWriteScope())
+                using (collection.BulkWriteScope())
                 {
                     Assert.IsTrue(collection.TryWrite(prop, ValueContainer.FromFloat(77f)));
                 }
@@ -562,7 +562,7 @@ namespace TimboJimboTests.PropertyBindings
                 Assert.AreEqual(Color.magenta, cRead.ColorValue);
 
                 // Bulk write all
-                using (collection.StartBulkWriteScope())
+                using (collection.BulkWriteScope())
                 {
                     Assert.IsTrue(collection.TryWrite(props[0], ValueContainer.FromVector2(Vector2.right)));
                     Assert.IsTrue(collection.TryWrite(props[1], ValueContainer.FromVector3(Vector3.up)));
