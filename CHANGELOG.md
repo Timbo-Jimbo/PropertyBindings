@@ -1,3 +1,7 @@
+## [0.6.2] - 24/06/2026
+
+- Removed OnAfterDeserialize - was causing crashed when accessing .boxedValue on SerializedProperty which is apparently a known issue - and we don't really need it!
+
 ## [0.6.1] - 21/06/2026
 
 - Removed some leftover debug logs
