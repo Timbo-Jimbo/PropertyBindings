@@ -14,7 +14,7 @@ namespace TimboJimbo.PropertyBindings
     }
 
     [Serializable]
-    public struct BindableProperty : IEquatable<BindableProperty>, ISerializationCallbackReceiver
+    public struct BindableProperty : IEquatable<BindableProperty>
     {
         public Object Target => _target;
         public string Path => _path;
@@ -190,13 +190,6 @@ namespace TimboJimbo.PropertyBindings
         public static bool operator !=(BindableProperty left, BindableProperty right)
         {
             return !left.Equals(right);
-        }
-
-        public void OnBeforeSerialize() { }
-
-        public void OnAfterDeserialize()
-        {
-            ComputeAndCacheIdentityHash();
         }
     }
     
