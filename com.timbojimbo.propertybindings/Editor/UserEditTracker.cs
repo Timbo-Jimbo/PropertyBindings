@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using JetBrains.Annotations;
 using TimboJimbo.PropertyBindings;
 using TimboJimboEditor.PropertyBindings;
@@ -26,16 +27,73 @@ namespace TimboJimboEditor
     
     public delegate void BindablePropertyEditHandler(EditType editType, BindablePropertyValueEdit edit);
 
+    public class UserEditTrackerFilterConfig
+    {
+        public List<Type> ExcludeTypes { get; } = new List<Type>();
+        public List<Type> IncludeTypes { get; } = new List<Type>();
+        public List<BindableProperty> ExcludeProperties { get; } = new List<BindableProperty>();
+        public List<BindableProperty> IncludeProperties { get; } = new List<BindableProperty>();
+        public Func<BindableProperty, bool> AdditionalFilter { get; set; }
+        public bool FilterOutNoisyTransformEdits { get; set; } = true;
+
+        private float _filterOutNoisyTransformEditsUntilTime = 0f;
+
+        internal void ResetNoisyTransformEditFilterWindow()
+        {
+            _filterOutNoisyTransformEditsUntilTime = Mathf.Max(
+                _filterOutNoisyTransformEditsUntilTime,
+                (float)EditorApplication.timeSinceStartup + 0.08f
+            );
+        }
+
+        internal bool ShouldFilterOut(BindableProperty bindableProperty)
+        {
+            if (ExcludeTypes.Count > 0 && ExcludeTypes.Contains(bindableProperty.Target.GetType()))
+                return true;
+
+            if (IncludeTypes.Count > 0 && !IncludeTypes.Contains(bindableProperty.Target.GetType()))
+                return true;
+
+            if (ExcludeProperties.Count > 0 && ExcludeProperties.Contains(bindableProperty))
+                return true;
+
+            if (IncludeProperties.Count > 0 && !IncludeProperties.Contains(bindableProperty))
+                return true;
+
+            if (AdditionalFilter != null && AdditionalFilter(bindableProperty))
+                return true;
+
+            if (FilterOutNoisyTransformEdits && EditorApplication.timeSinceStartup <= _filterOutNoisyTransformEditsUntilTime && IsNoisyTransformProperty(bindableProperty))
+                return true;
+
+            return false;
+        }
+
+        internal bool IsNoisyTransformProperty(BindableProperty bindableProperty)
+        {
+            return bindableProperty.Target is Transform or RectTransform;
+        }
+    }
+
     public class UserEditTracker
     {
-        [CanBeNull] private Func<BindableProperty, bool> _filterOut;
+        private const double NoiseFilterWindowSeconds = 0.08d;
+
+        private UserEditTrackerFilterConfig _filterConfig;
         private BindablePropertyEditHandler _onEdit;
         private Dictionary<BindableProperty, BindablePropertyEditState> _changes = new Dictionary<BindableProperty, BindablePropertyEditState>();
         private bool _detecting;
+        private double _noiseFilterUntilTime;
 
-        public UserEditTracker(Func<BindableProperty, bool> filterOut = null)
+        public UserEditTracker(Func<BindableProperty, bool> filterOut = null, bool enableNoiseFilter = true) : this(new ()
         {
-            _filterOut = filterOut;
+            AdditionalFilter = filterOut,
+            FilterOutNoisyTransformEdits = enableNoiseFilter
+        }) { }
+
+        public UserEditTracker(UserEditTrackerFilterConfig filterConfig)
+        {
+            _filterConfig = filterConfig;
         }
 
         public void StartDetecting(BindablePropertyEditHandler onPropertyChanged)
@@ -61,35 +119,33 @@ namespace TimboJimboEditor
             }
         }
 
-        private void FlushUndoRecord()
-        {
-            using (ListPool<BindableProperty>.Get(out var keysToRemove))
-            {
-                foreach (var (key, state) in _changes)
-                {
-                    //once flushed, what was previously undone can no longer be redone, so we should clear out
-                    //associated undo groups that are currently not live, as they will never transition back to being live
-                    state.AssociatedUndoGroups.Clear();
-                    foreach (var liveGroup in state.LiveUndoGroups)
-                        state.AssociatedUndoGroups.Add(liveGroup);
-
-                    // If there are no live undo groups, then this change is effectively removed, so we can clear it out entirely
-                    if (state.LiveUndoGroups.Count == 0)
-                        keysToRemove.Add(key);
-                }
-
-                foreach (var key in keysToRemove)
-                {
-                    var change = _changes[key];
-                    _changes.Remove(key);
-                    InvokePropertyChangedSafely(EditType.Removed, change.BindablePropertyValueEdit);
-                }
-            }
-        }
-
         private UndoPropertyModification[] OnPostprocessModifications(UndoPropertyModification[] undoPropertyModification)
         {
-            FlushUndoRecord();
+            // 'Bake down' Undos
+            {
+                using (ListPool<BindableProperty>.Get(out var keysToRemove))
+                {
+                    foreach (var (key, state) in _changes)
+                    {
+                        //once flushed, what was previously undone can no longer be redone, so we should clear out
+                        //associated undo groups that are currently not live, as they will never transition back to being live
+                        state.AssociatedUndoGroups.Clear();
+                        foreach (var liveGroup in state.LiveUndoGroups)
+                            state.AssociatedUndoGroups.Add(liveGroup);
+
+                        // If there are no live undo groups, then this change is effectively removed, so we can clear it out entirely
+                        if (state.LiveUndoGroups.Count == 0)
+                            keysToRemove.Add(key);
+                    }
+
+                    foreach (var key in keysToRemove)
+                    {
+                        var change = _changes[key];
+                        _changes.Remove(key);
+                        InvokePropertyChangedSafely(EditType.Removed, change.BindablePropertyValueEdit);
+                    }
+                }
+            }
 
             using(ListPool<SimplifiedModification>.Get(out var parsedModifications))
             {
@@ -282,33 +338,22 @@ namespace TimboJimboEditor
                         parsedModifications.Add(kvp.Value);
                 }
 
-                //external filtering
-                if( _filterOut != null)
+
+                // Filtering
                 {
-                    for (int i = parsedModifications.Count - 1; i >= 0; i--)
+                    // Update noisy transform edit filter window
                     {
-                        var modification = parsedModifications[i];
-                        if (_filterOut(modification.BindableProperty))
-                            parsedModifications.RemoveAt(i);
+                        bool anyNonNoisyModifications = parsedModifications.Any(sm => !_filterConfig.IsNoisyTransformProperty(sm.BindableProperty));
+                        
+                        //logic here is: if there is any non-noisy changes in the group of changes, then we are probably not intending to make a noisy change!
+                        // so lets ignore noisy changes for a short window of time. Otherwise, we are editing noisy properties directly, so we should not filter them out.
+                        if (anyNonNoisyModifications)
+                            _filterConfig.ResetNoisyTransformEditFilterWindow();
                     }
+
+                    parsedModifications.RemoveAll(sm => _filterConfig.ShouldFilterOut(sm.BindableProperty));
                 }
-
-                // 'Built-in' filtering
-                {
-                    // The rationale here is that: when a gameobject was *just* activated or deactivated, that
-                    // can result in shifting around RectTransforms due to layout changes. This is an indirect
-                    // consequence of the user activating/deactivating an object, so we want to filter this out
-                    // (Any changes in the future to those RectTransforms will be captured and treated as normal, 
-                    // this is just to avoid the noise of the cascade of changes that happens on activation/deactivation)
-                    var anyGoActivationChanges = parsedModifications.Exists(sm => sm.BindableProperty.Target is GameObject go && sm.BindableProperty.Path is "m_IsActive");
-                    var anyBehaviourActivationChanges = parsedModifications.Exists(sm => sm.BindableProperty.Target is Behaviour behaviour && sm.BindableProperty.Path is "m_Enabled");
-
-                    if (anyGoActivationChanges || anyBehaviourActivationChanges)
-                    {
-                        parsedModifications.RemoveAll(sm => sm.BindableProperty.Target is RectTransform);
-                    }
-                }
-
+                
 
                 foreach(var m in parsedModifications)
                 {
@@ -343,9 +388,10 @@ namespace TimboJimboEditor
             return undoPropertyModification;
         }
 
-
         private void OnUndoRedoEvent(in UndoRedoInfo undoRedoInfo)
         {
+            _filterConfig.ResetNoisyTransformEditFilterWindow();
+
             foreach (var (_, state) in _changes)
             {
                 if (state.AssociatedUndoGroups.Contains(undoRedoInfo.undoGroup))

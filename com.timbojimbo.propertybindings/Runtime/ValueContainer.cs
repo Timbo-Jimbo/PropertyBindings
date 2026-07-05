@@ -414,6 +414,30 @@ namespace TimboJimbo.PropertyBindings
             }
         }
 
+        /// <summary>Uniformly scales a value by a factor. Quaternions are scaled in euler space.</summary>
+        public static ValueContainer Scale(ValueContainer value, float factor)
+        {
+            switch (value.Kind)
+            {
+                case ValueKind.Int:
+                    return FromInt(Mathf.RoundToInt(value.IntValue * factor));
+                case ValueKind.Float:
+                    return FromFloat(value.FloatValue * factor);
+                case ValueKind.Vector2:
+                    return FromVector2(value.Vector2Value * factor);
+                case ValueKind.Vector3:
+                    return FromVector3(value.Vector3Value * factor);
+                case ValueKind.Vector4:
+                    return FromVector4(value.Vector4Value * factor);
+                case ValueKind.Color:
+                    return FromColor(value.ColorValue * factor);
+                case ValueKind.Quaternion:
+                    return FromQuaternion(Quaternion.Euler(value.QuaternionValue.eulerAngles * factor));
+                default:
+                    throw new NotSupportedException($"Scale is not supported for {value.Kind}");
+            }
+        }
+
         private void Clear()
         {
             Kind = default;

@@ -36,8 +36,27 @@ namespace TimboJimbo.PropertyBindings
         [NonSerialized] private long _identityHash;
         [NonSerialized] private bool _identityHashComputed;
 
+        public bool IsValid => _target != null && !string.IsNullOrEmpty(_path) && _kind != ValueKind.Invalid;
+
 
         public static BindableProperty Invalid => default;
+
+        public static BindableProperty CreateUnresolvedTarget(Object target)
+        {
+            PropBindingsAssert.IsNotNull(target);
+
+            return new BindableProperty
+            {
+                _target = target,
+                _path = string.Empty,
+                _kind = ValueKind.Invalid,
+                _componentLayout = ComponentLayout.One,
+                _componentOnePath = string.Empty,
+                _componentTwoPath = string.Empty,
+                _componentThreePath = string.Empty,
+                _componentFourPath = string.Empty,
+            };
+        }
 
         public static BindableProperty CreateScalar(Object target, string path, ValueKind kind)
         {

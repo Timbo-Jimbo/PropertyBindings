@@ -1,5 +1,6 @@
 #if TJ_PROPERTY_BINDINGS_DEBUG_WINDOWS
 using System.Collections.Generic;
+using System;
 using TimboJimbo.PropertyBindings;
 using TimboJimboEditor;
 using UnityEditor;
@@ -20,6 +21,7 @@ namespace TimboJimboTests.PropertyBindings.Debugging
         private EditTreeView _treeView;
 
         private readonly List<EditEntry> _entries = new List<EditEntry>();
+        private readonly List<KeyValuePair<BindableProperty, float>> _sortedFilteredEdits = new List<KeyValuePair<BindableProperty, float>>();
         private int _dataRevision;
 
         private struct EditEntry
@@ -40,12 +42,20 @@ namespace TimboJimboTests.PropertyBindings.Debugging
         {
             _treeViewState ??= new TreeViewState<int>();
             EditorApplication.playModeStateChanged += OnPlayModeChanged;
+            EditorApplication.update += OnEditorUpdate;
         }
 
         private void OnDisable()
         {
             EditorApplication.playModeStateChanged -= OnPlayModeChanged;
+            EditorApplication.update -= OnEditorUpdate;
             StopTracking();
+        }
+
+        private void OnEditorUpdate()
+        {
+            if (_isTracking)
+                Repaint();
         }
 
         private void OnPlayModeChanged(PlayModeStateChange state)
