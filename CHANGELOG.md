@@ -1,3 +1,9 @@
+## [0.7.0] - 06/07/2026
+
+- Added a Drawer for BindableProperty
+- Added Scale helper method to ValueContainer
+- Improved filtering API for UserEditTracker
+
 ## [0.6.2] - 24/06/2026
 
 - Removed OnAfterDeserialize - was causing crashed when accessing .boxedValue on SerializedProperty which is apparently a known issue - and we don't really need it!
