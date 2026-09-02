@@ -1,15 +1,28 @@
 ## [Unreleased]
 
+## [0.8.0] - 02/09/2026
+
+### Breaking changes
+
+- `BindableProperty` is now explicitly descriptor-backed or ad-hoc; descriptor-backed identity is target plus stable descriptor ID
+- Specialized binding selection is descriptor-driven and no longer structurally matches raw serialized paths
+- Removed the legacy scalar/component factory family and structural descriptor fallback; use `BindableProperty.Create(...)` with a descriptor or `CreateAdHoc(...)`
+- Existing serialized properties must be migrated to canonical descriptor IDs or intentionally retained as ad-hoc properties
+
+### Added
+
+- Added typed, extensible property descriptors and canonical descriptors for specialized Unity properties
+- Added descriptor registry lookup, target/value contract validation, and descriptor-aware diagnostics
+- Added typed `ValueContainer.From(...)` overloads
+- Added structured binding resolution diagnostics with candidate match kinds and preserved construction failures
+- Added Play Mode regression coverage for custom `Graphic.color` virtual setters, generated visual state, repeated bulk writes, and disposal
+
+### Fixed
+
 - Fixed `Graphic.color` bindings to honor the public virtual property contract for custom `Graphic` subclasses
 - Generic bindings now reject incompatible component layouts and validate Unity's returned buffer counts during construction
 - Malformed composite bindings now fail at bind time instead of falling through to atomic reflection writes
-- Added structured binding resolution diagnostics with candidate failures and consistent `Create`/`ResolveBindingType` fallback
-- Added typed, extensible property descriptors and canonical descriptors for specialized Unity properties
-- `BindableProperty` is now an explicit descriptor-backed or ad-hoc property; descriptor-backed identity is target plus stable descriptor ID
-- Specialized binding selection and editor discovery are descriptor-driven; Generic and Reflection remain predicate fallbacks
-- Removed structural descriptor fallback and the legacy scalar/component factory family in favor of `Create(...)` and `CreateAdHoc(...)`
-- Added descriptor registry lookup, target/value contract validation, and descriptor-aware diagnostics
-- Added typed `ValueContainer.From(...)` overloads
+- Registry creation and type resolution now traverse candidates consistently after construction failures
 - Binding construction now cleans up partial native and collection state after failures
 
 ## [0.7.0] - 06/07/2026

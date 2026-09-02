@@ -1,0 +1,21 @@
+{
+    "name": "TimboJimboTests.PropertyBindings.PlayMode",
+    "rootNamespace": "TimboJimboTests.PropertyBindings.PlayMode",
+    "references": [
+        "UnityEngine.TestRunner",
+        "TimboJimbo.PropertyBindings.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
