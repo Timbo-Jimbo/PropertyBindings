@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [0.8.1] - 02/09/2026
+
+### Fixed
+
+- Direct and bulk writes now reject `ValueContainer` values whose kind does not match the target `BindableProperty`, preventing malformed typed writes from corrupting target values
+
 ## [0.8.0] - 02/09/2026
 
 ### Breaking changes

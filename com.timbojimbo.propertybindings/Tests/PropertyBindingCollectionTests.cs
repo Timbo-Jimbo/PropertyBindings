@@ -166,6 +166,35 @@ namespace TimboJimboTests.PropertyBindings
             }
         }
 
+        [Test]
+        public void TryDirectWrite_RejectsMismatchedValueKindWithoutModifyingTarget()
+        {
+            var initial = new Vector3(1f, 2f, 3f);
+            _go.transform.localPosition = initial;
+            var property = BindableProperty.Create(_go.transform, TransformProperties.LocalPosition);
+
+            using (var collection = PropertyBindingCollection.Bind(_go, new[] { property }))
+            {
+                Assert.IsFalse(collection.TryDirectWrite(property, ValueContainer.FromFloat(99f)));
+                Assert.AreEqual(initial, _go.transform.localPosition);
+            }
+        }
+
+        [Test]
+        public void TryBulkWrite_RejectsMismatchedValueKindWithoutModifyingTarget()
+        {
+            var initial = new Vector3(1f, 2f, 3f);
+            _go.transform.localPosition = initial;
+            var property = BindableProperty.Create(_go.transform, TransformProperties.LocalPosition);
+
+            using (var collection = PropertyBindingCollection.Bind(_go, new[] { property }))
+            using (collection.BulkWriteScope())
+            {
+                Assert.IsFalse(collection.TryWrite(property, ValueContainer.FromFloat(99f)));
+                Assert.AreEqual(initial, _go.transform.localPosition);
+            }
+        }
+
         // ───────────── Test 6 ─────────────
 
         [Test]

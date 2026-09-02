@@ -88,6 +88,9 @@ namespace TimboJimbo.PropertyBindings
             if (_bulkWriteRequestCount > 0)
                 throw new InvalidOperationException("Bulk write in progress. Call TryBulkWrite() to write during a bulk write operation.");
 
+            if (property.Kind != valueContainer.Kind)
+                return false;
+
             if (!_bindings.TryGetValue(property, out var binding))
                 return false;
 
@@ -122,6 +125,9 @@ namespace TimboJimbo.PropertyBindings
             var bulkWriteInProgress = _bulkWriteRequestCount > 0;
             if (!bulkWriteInProgress)
                 throw new InvalidOperationException("No bulk write in progress. Call StartBulkWrite() before appending bulk writes.");
+
+            if (property.Kind != valueContainer.Kind)
+                return false;
 
             if (!_bindings.TryGetValue(property, out var binding))
                 return false;
