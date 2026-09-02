@@ -43,6 +43,24 @@ Bindable properties are discovered via [editor utility](https://github.com/Timbo
 
 It is serializable. You can use the editor tooling to find some `BindableProperty`'s that you want to drive, store them in a `List`, and at runtime you can bind to them and drive them. 
 
+### Property descriptors
+
+Built-in properties are defined once as typed `PropertyDescriptor<TTarget, TValue>` values. Prefer constructing them with descriptors instead of repeating Unity serialized paths:
+
+```csharp
+var property = BindableProperty.Create(transform, TransformProperties.LocalPosition);
+var value = ValueContainer.From(Vector3.zero);
+```
+
+Descriptors provide a stable ID, target/value types, serialized path, value kind, and component layout. Creating a property registers its descriptor and serializes only the target and descriptor ID as meaningful state. Editor discovery, binding selection, diagnostics, and downstream packages therefore share one property contract.
+
+`BindableProperty` has two explicit forms:
+
+- **Descriptor-backed:** use `BindableProperty.Create(target, descriptor)` for finite, registered contracts and specialized bindings. Equality is `target + descriptor ID`.
+- **Ad-hoc:** use `BindableProperty.CreateAdHoc(...)` for arbitrary serialized or reflected fields. Equality uses the target and explicit path/kind/layout metadata.
+
+An ad-hoc property does not acquire specialized behavior merely because its path resembles a registered descriptor. This keeps property identity deliberate and removes structural fallback or migration ambiguity.
+
 ## IPropertyBinding
 
 Bound properties are driven by various `IPropertyBinding` implementations:
@@ -75,11 +93,17 @@ You provide the `PropertyBindingCollection` a list of `BindableProperty`'s, and 
 > Remember to `Dispose` of your `IPropertyBinding` once you are done.
 
 ## PropertyBindingRegistry
-The `PropertyBindingRegistry` is where `IPropertyBinding`s live. You register your custom bindings via `PropertyBindingRegistry.Register`. You pass in a method that checks if your `IPropertyBinding` can drive a `BindableProperty`, and a factory method to create a new instance of your `IPropertyBinding`. 
+The `PropertyBindingRegistry` is where `IPropertyBinding`s live. Specialized bindings register the descriptors they support plus a factory. Descriptor registration also publishes those descriptors through `PropertyDescriptorRegistry`, making them available to editor discovery and legacy migration.
 
-It is up to you how and where you want to go about this. The built in `IPropertyBinding`s register via a static ctor on `PropertyBindingRegistry`, and they all follow a similar pattern of exposing a static `CanBind` method as well as an private `TryGetBindingInfo` method that is used to by both `CanBind` and by the `IPropertyBinding` itself to tell it  _what_ it is driving and _how_ it is driving it. 
+```csharp
+PropertyBindingRegistry.Register<MyPropertyBinding>(
+	new IPropertyDescriptor[] { MyProperties.Amount },
+	(root, property) => new MyPropertyBinding(root, property));
+```
 
-Again, this is just a pattern and it isn't enforced by the framework - but it should equip you well enough to read some of the `IPropertyBinding` implementation source code and get a good feel for how it all works.
+Open-ended fallback bindings can still use predicate registration. The built-in Generic and Reflection bindings use this form because arbitrary user-authored properties cannot be represented by a closed descriptor catalog.
+
+Use `PropertyBindingRegistry.Diagnose` to inspect candidate priority, whether each candidate matched by descriptor or predicate, descriptor IDs, construction failures, and the selected binding type.
 
 ## Extra
 ### UserEditTracker

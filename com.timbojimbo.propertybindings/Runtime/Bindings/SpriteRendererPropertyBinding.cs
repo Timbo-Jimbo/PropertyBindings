@@ -19,11 +19,6 @@ namespace TimboJimbo.PropertyBindings.Bindings
                 throw new System.ArgumentException($"SpriteRendererPropertyBinding does not support property path: {property.Path}", nameof(property));
         }
 
-        public static bool CanBind(BindableProperty property)
-        {
-            return TryGetBindingInfo(property, out _, out _);
-        }
-
         private static bool TryGetBindingInfo(BindableProperty property, out SpriteRenderer spriteRenderer, out SpriteRendererProperty spriteRendererProperty)
         {
             spriteRenderer = property.Target as SpriteRenderer;
@@ -34,24 +29,17 @@ namespace TimboJimbo.PropertyBindings.Bindings
                 return false;
             }
 
-            switch (property.Path)
+            if (SpriteRendererProperties.Color.Matches(property)) spriteRendererProperty = SpriteRendererProperty.Color;
+            else if (SpriteRendererProperties.Size.Matches(property)) spriteRendererProperty = SpriteRendererProperty.Size;
+            else if (SpriteRendererProperties.FlipX.Matches(property)) spriteRendererProperty = SpriteRendererProperty.FlipX;
+            else if (SpriteRendererProperties.FlipY.Matches(property)) spriteRendererProperty = SpriteRendererProperty.FlipY;
+            else
             {
-                case "m_Color":
-                    spriteRendererProperty = SpriteRendererProperty.Color;
-                    return true;
-                case "m_Size":
-                    spriteRendererProperty = SpriteRendererProperty.Size;
-                    return true;
-                case "m_FlipX":
-                    spriteRendererProperty = SpriteRendererProperty.FlipX;
-                    return true;
-                case "m_FlipY":
-                    spriteRendererProperty = SpriteRendererProperty.FlipY;
-                    return true;
-                default:
-                    spriteRendererProperty = default;
-                    return false;
+                spriteRenderer = null;
+                spriteRendererProperty = default;
+                return false;
             }
+            return true;
         }
 
         public override void Dispose()

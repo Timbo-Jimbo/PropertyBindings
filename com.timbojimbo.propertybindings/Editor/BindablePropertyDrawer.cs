@@ -18,6 +18,7 @@ namespace TimboJimboEditor.PropertyBindings
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             var targetProp = property.FindPropertyRelative("_target");
+            var descriptorIdProp = property.FindPropertyRelative("_descriptorId");
             var pathProp = property.FindPropertyRelative("_path");
             var kindProp = property.FindPropertyRelative("_kind");
             var componentLayoutProp = property.FindPropertyRelative("_componentLayout");
@@ -27,7 +28,7 @@ namespace TimboJimboEditor.PropertyBindings
             var componentFourPathProp = property.FindPropertyRelative("_componentFourPath");
 
             if (
-                targetProp == null || pathProp == null || kindProp == null || componentLayoutProp == null ||
+                targetProp == null || descriptorIdProp == null || pathProp == null || kindProp == null || componentLayoutProp == null ||
                 componentOnePathProp == null || componentTwoPathProp == null || componentThreePathProp == null || componentFourPathProp == null
             )
             {
@@ -46,6 +47,7 @@ namespace TimboJimboEditor.PropertyBindings
             {
                 WriteBindableProperty(
                     targetProp,
+                    descriptorIdProp,
                     pathProp,
                     kindProp,
                     componentLayoutProp,
@@ -70,7 +72,7 @@ namespace TimboJimboEditor.PropertyBindings
                 if (EditorGUI.EndChangeCheck())
                 {
                     targetProp.objectReferenceValue = newGo;
-                    ClearBinding(pathProp, kindProp, componentLayoutProp, componentOnePathProp, componentTwoPathProp, componentThreePathProp, componentFourPathProp);
+                    ClearBinding(descriptorIdProp, pathProp, kindProp, componentLayoutProp, componentOnePathProp, componentTwoPathProp, componentThreePathProp, componentFourPathProp);
                 }
             }
 
@@ -84,7 +86,7 @@ namespace TimboJimboEditor.PropertyBindings
                     var targetGo = GetTargetGameObject(targetProp.objectReferenceValue);
                     if (targetGo != null)
                     {
-                        var current = ReadCurrent(property.hasMultipleDifferentValues, targetProp, pathProp, kindProp, componentLayoutProp,
+                        var current = ReadCurrent(property.hasMultipleDifferentValues, targetProp, descriptorIdProp, pathProp, kindProp, componentLayoutProp,
                             componentOnePathProp, componentTwoPathProp, componentThreePathProp, componentFourPathProp);
 
                         PopupWindow.Show(line2, new BindablePropertyPickerPopup(targetGo, current, selected =>
@@ -104,6 +106,7 @@ namespace TimboJimboEditor.PropertyBindings
         }
 
         private static void ClearBinding(
+            SerializedProperty descriptorIdProp,
             SerializedProperty pathProp,
             SerializedProperty kindProp,
             SerializedProperty componentLayoutProp,
@@ -112,6 +115,7 @@ namespace TimboJimboEditor.PropertyBindings
             SerializedProperty componentThreePathProp,
             SerializedProperty componentFourPathProp)
         {
+            descriptorIdProp.stringValue = string.Empty;
             pathProp.stringValue = string.Empty;
             kindProp.enumValueIndex = (int)ValueKind.Invalid;
             componentLayoutProp.enumValueIndex = (int)ComponentLayout.One;
@@ -123,6 +127,7 @@ namespace TimboJimboEditor.PropertyBindings
 
         private static void WriteBindableProperty(
             SerializedProperty targetProp,
+            SerializedProperty descriptorIdProp,
             SerializedProperty pathProp,
             SerializedProperty kindProp,
             SerializedProperty componentLayoutProp,
@@ -133,18 +138,21 @@ namespace TimboJimboEditor.PropertyBindings
             BindableProperty bindableProperty)
         {
             targetProp.objectReferenceValue = bindableProperty.Target;
-            pathProp.stringValue = bindableProperty.Path;
-            kindProp.enumValueIndex = (int)bindableProperty.Kind;
-            componentLayoutProp.enumValueIndex = (int)bindableProperty.ComponentLayout;
-            componentOnePathProp.stringValue = bindableProperty.ComponentOnePath ?? string.Empty;
-            componentTwoPathProp.stringValue = bindableProperty.ComponentTwoPath ?? string.Empty;
-            componentThreePathProp.stringValue = bindableProperty.ComponentThreePath ?? string.Empty;
-            componentFourPathProp.stringValue = bindableProperty.ComponentFourPath ?? string.Empty;
+            descriptorIdProp.stringValue = bindableProperty.DescriptorId ?? string.Empty;
+            bool isAdHoc = bindableProperty.IsAdHoc;
+            pathProp.stringValue = isAdHoc ? bindableProperty.Path : string.Empty;
+            kindProp.enumValueIndex = (int)(isAdHoc ? bindableProperty.Kind : ValueKind.Invalid);
+            componentLayoutProp.enumValueIndex = (int)(isAdHoc ? bindableProperty.ComponentLayout : ComponentLayout.One);
+            componentOnePathProp.stringValue = isAdHoc ? bindableProperty.ComponentOnePath ?? string.Empty : string.Empty;
+            componentTwoPathProp.stringValue = isAdHoc ? bindableProperty.ComponentTwoPath ?? string.Empty : string.Empty;
+            componentThreePathProp.stringValue = isAdHoc ? bindableProperty.ComponentThreePath ?? string.Empty : string.Empty;
+            componentFourPathProp.stringValue = isAdHoc ? bindableProperty.ComponentFourPath ?? string.Empty : string.Empty;
         }
 
         private static BindableProperty ReadCurrent(
             bool isMixed,
             SerializedProperty targetProp,
+            SerializedProperty descriptorIdProp,
             SerializedProperty pathProp,
             SerializedProperty kindProp,
             SerializedProperty componentLayoutProp,
@@ -157,9 +165,7 @@ namespace TimboJimboEditor.PropertyBindings
                 return BindableProperty.Invalid;
 
             var target = targetProp.objectReferenceValue;
-            var path = pathProp.stringValue;
-
-            if (target == null || string.IsNullOrEmpty(path))
+            if (target == null)
                 return BindableProperty.Invalid;
 
             var kind = (ValueKind)kindProp.enumValueIndex;
@@ -171,7 +177,12 @@ namespace TimboJimboEditor.PropertyBindings
 
             try
             {
-                return BindableProperty.CreateWithComponentLayout(target, path, kind, layout, c1, c2, c3, c4);
+                if (PropertyDescriptorRegistry.TryGet(descriptorIdProp.stringValue, out var descriptor) &&
+                    descriptor.SupportsTarget(target))
+                    return descriptor.Create(target);
+
+                if (string.IsNullOrEmpty(pathProp.stringValue)) return BindableProperty.Invalid;
+                return BindableProperty.CreateAdHoc(target, pathProp.stringValue, kind, layout, c1, c2, c3, c4);
             }
             catch
             {

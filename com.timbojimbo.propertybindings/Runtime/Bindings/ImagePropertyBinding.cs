@@ -20,11 +20,6 @@ namespace TimboJimbo.PropertyBindings.Bindings
                 throw new System.ArgumentException($"ImagePropertyBinding does not support property path: {property.Path}", nameof(property));
         }
 
-        public static bool CanBind(BindableProperty property)
-        {
-            return TryGetBindingInfo(property, out _, out _);
-        }
-
         private static bool TryGetBindingInfo(BindableProperty property, out Image image, out ImageProperty imageProperty)
         {
             image = property.Target as Image;
@@ -35,39 +30,22 @@ namespace TimboJimbo.PropertyBindings.Bindings
                 return false;
             }
 
-            switch (property.Path)
+            if (ImageProperties.FillAmount.Matches(property)) imageProperty = ImageProperty.FillAmount;
+            else if (ImageProperties.FillClockwise.Matches(property)) imageProperty = ImageProperty.FillClockwise;
+            else if (ImageProperties.PreserveAspect.Matches(property)) imageProperty = ImageProperty.PreserveAspect;
+            else if (ImageProperties.FillCenter.Matches(property)) imageProperty = ImageProperty.FillCenter;
+            else if (ImageProperties.PixelsPerUnitMultiplier.Matches(property)) imageProperty = ImageProperty.PixelsPerUnitMultiplier;
+            else if (ImageProperties.Type.Matches(property)) imageProperty = ImageProperty.Type;
+            else if (ImageProperties.FillMethod.Matches(property)) imageProperty = ImageProperty.FillMethod;
+            else if (ImageProperties.FillOrigin.Matches(property)) imageProperty = ImageProperty.FillOrigin;
+            else if (ImageProperties.Sprite.Matches(property)) imageProperty = ImageProperty.Sprite;
+            else
             {
-                case "m_FillAmount":
-                    imageProperty = ImageProperty.FillAmount;
-                    return true;
-                case "m_FillClockwise":
-                    imageProperty = ImageProperty.FillClockwise;
-                    return true;
-                case "m_PreserveAspect":
-                    imageProperty = ImageProperty.PreserveAspect;
-                    return true;
-                case "m_FillCenter":
-                    imageProperty = ImageProperty.FillCenter;
-                    return true;
-                case "m_PixelsPerUnitMultiplier":
-                    imageProperty = ImageProperty.PixelsPerUnitMultiplier;
-                    return true;
-                case "m_Type":
-                    imageProperty = ImageProperty.Type;
-                    return true;
-                case "m_FillMethod":
-                    imageProperty = ImageProperty.FillMethod;
-                    return true;
-                case "m_FillOrigin":
-                    imageProperty = ImageProperty.FillOrigin;
-                    return true;
-                case "m_Sprite":
-                    imageProperty = ImageProperty.Sprite;
-                    return true;
-                default:
-                    imageProperty = default;
-                    return false;
+                image = null;
+                imageProperty = default;
+                return false;
             }
+            return true;
         }
 
         public override void Dispose()

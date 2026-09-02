@@ -19,11 +19,6 @@ namespace TimboJimbo.PropertyBindings.Bindings
                 throw new System.ArgumentException($"CanvasGroupPropertyBinding does not support property path: {property.Path}", nameof(property));
         }
 
-        public static bool CanBind(BindableProperty property)
-        {
-            return TryGetBindingInfo(property, out _, out _);
-        }
-
         private static bool TryGetBindingInfo(BindableProperty property, out CanvasGroup canvasGroup, out CanvasGroupProperty canvasGroupProperty)
         {
             canvasGroup = property.Target as CanvasGroup;
@@ -34,24 +29,17 @@ namespace TimboJimbo.PropertyBindings.Bindings
                 return false;
             }
 
-            switch (property.Path)
+            if (CanvasGroupProperties.Alpha.Matches(property)) canvasGroupProperty = CanvasGroupProperty.Alpha;
+            else if (CanvasGroupProperties.Interactable.Matches(property)) canvasGroupProperty = CanvasGroupProperty.Interactable;
+            else if (CanvasGroupProperties.BlocksRaycasts.Matches(property)) canvasGroupProperty = CanvasGroupProperty.BlocksRaycasts;
+            else if (CanvasGroupProperties.IgnoreParentGroups.Matches(property)) canvasGroupProperty = CanvasGroupProperty.IgnoreParentGroups;
+            else
             {
-                case "m_Alpha":
-                    canvasGroupProperty = CanvasGroupProperty.Alpha;
-                    return true;
-                case "m_Interactable":
-                    canvasGroupProperty = CanvasGroupProperty.Interactable;
-                    return true;
-                case "m_BlocksRaycasts":
-                    canvasGroupProperty = CanvasGroupProperty.BlocksRaycasts;
-                    return true;
-                case "m_IgnoreParentGroups":
-                    canvasGroupProperty = CanvasGroupProperty.IgnoreParentGroups;
-                    return true;
-                default:
-                    canvasGroupProperty = default;
-                    return false;
+                canvasGroup = null;
+                canvasGroupProperty = default;
+                return false;
             }
+            return true;
         }
 
         public override void Dispose()

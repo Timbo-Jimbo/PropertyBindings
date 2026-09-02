@@ -17,15 +17,19 @@ namespace TimboJimbo.PropertyBindings
     public struct BindableProperty : IEquatable<BindableProperty>
     {
         public Object Target => _target;
-        public string Path => _path;
-        public ValueKind Kind => _kind;
-        public ComponentLayout ComponentLayout => _componentLayout;
-        public string ComponentOnePath => _componentOnePath;
-        public string ComponentTwoPath => _componentTwoPath;
-        public string ComponentThreePath => _componentThreePath;
-        public string ComponentFourPath => _componentFourPath;
+        public string DescriptorId => _descriptorId;
+        public bool HasDescriptor => !string.IsNullOrEmpty(_descriptorId);
+        public bool IsAdHoc => !HasDescriptor;
+        public string Path => TryGetDescriptor(out var descriptor) ? descriptor.SerializedPath : _path;
+        public ValueKind Kind => TryGetDescriptor(out var descriptor) ? descriptor.Kind : _kind;
+        public ComponentLayout ComponentLayout => TryGetDescriptor(out var descriptor) ? descriptor.Layout : _componentLayout;
+        public string ComponentOnePath => TryGetDescriptor(out var descriptor) ? descriptor.ComponentOnePath : _componentOnePath;
+        public string ComponentTwoPath => TryGetDescriptor(out var descriptor) ? descriptor.ComponentTwoPath : _componentTwoPath;
+        public string ComponentThreePath => TryGetDescriptor(out var descriptor) ? descriptor.ComponentThreePath : _componentThreePath;
+        public string ComponentFourPath => TryGetDescriptor(out var descriptor) ? descriptor.ComponentFourPath : _componentFourPath;
 
         [SerializeField] private Object _target;
+        [SerializeField] private string _descriptorId;
         [SerializeField] private string _path;
         [SerializeField] private ValueKind _kind;
         [SerializeField] private ComponentLayout _componentLayout;
@@ -33,10 +37,11 @@ namespace TimboJimbo.PropertyBindings
         [SerializeField] private string _componentTwoPath;
         [SerializeField] private string _componentThreePath;
         [SerializeField] private string _componentFourPath;
-        [NonSerialized] private long _identityHash;
-        [NonSerialized] private bool _identityHashComputed;
 
-        public bool IsValid => _target != null && !string.IsNullOrEmpty(_path) && _kind != ValueKind.Invalid;
+        public bool IsValid => _target != null &&
+                               (HasDescriptor
+                                   ? TryGetDescriptor(out _)
+                                   : !string.IsNullOrEmpty(_path) && _kind != ValueKind.Invalid);
 
 
         public static BindableProperty Invalid => default;
@@ -62,6 +67,18 @@ namespace TimboJimbo.PropertyBindings
             PropertyDescriptor<TTarget, TValue> descriptor)
             where TTarget : Object => descriptor.Create(target);
 
+        internal static BindableProperty CreateFromDescriptor(
+            Object target,
+            string descriptorId)
+        {
+            PropBindingsAssert.IsNotNull(target);
+            PropBindingsAssert.IsFalse(string.IsNullOrEmpty(descriptorId));
+            return new BindableProperty { _target = target, _descriptorId = descriptorId };
+        }
+
+        public bool TryGetDescriptor(out IPropertyDescriptor descriptor) =>
+            PropertyDescriptorRegistry.TryGetForTarget(_descriptorId, _target, out descriptor);
+
         public static BindableProperty CreateUnresolvedTarget(Object target)
         {
             PropBindingsAssert.IsNotNull(target);
@@ -69,6 +86,7 @@ namespace TimboJimbo.PropertyBindings
             return new BindableProperty
             {
                 _target = target,
+                _descriptorId = string.Empty,
                 _path = string.Empty,
                 _kind = ValueKind.Invalid,
                 _componentLayout = ComponentLayout.One,
@@ -79,134 +97,73 @@ namespace TimboJimbo.PropertyBindings
             };
         }
 
-        public static BindableProperty CreateScalar(Object target, string path, ValueKind kind)
+        public static BindableProperty CreateAdHoc(
+            Object target,
+            string path,
+            ValueKind kind,
+            ComponentLayout componentLayout = ComponentLayout.One,
+            string componentOnePath = null,
+            string componentTwoPath = null,
+            string componentThreePath = null,
+            string componentFourPath = null)
         {
             PropBindingsAssert.IsNotNull(target);
             PropBindingsAssert.IsFalse(string.IsNullOrEmpty(path));
-            
-            var result = new BindableProperty
-            {
-                _target = target,
-                _path = path,
-                _kind = kind,
-                _componentLayout = ComponentLayout.One,
-                _componentOnePath = path,
-                _componentTwoPath = string.Empty,
-                _componentThreePath = string.Empty,
-                _componentFourPath = string.Empty,
-            };
-            result.ComputeAndCacheIdentityHash();
-            return result;
-        }
+            PropBindingsAssert.IsTrue(kind != ValueKind.Invalid);
+            PropBindingsAssert.IsTrue(componentLayout is >= ComponentLayout.One and <= ComponentLayout.Four);
 
-        public static BindableProperty CreateTwoComponent(Object target, string path, ValueKind kind, string componentOnePath, string componentTwoPath)
-        {
-            PropBindingsAssert.IsNotNull(target);
-            PropBindingsAssert.IsFalse(string.IsNullOrEmpty(path));
+            componentOnePath ??= path;
             PropBindingsAssert.IsFalse(string.IsNullOrEmpty(componentOnePath));
-            PropBindingsAssert.IsFalse(string.IsNullOrEmpty(componentTwoPath));
+            if (componentLayout >= ComponentLayout.Two) PropBindingsAssert.IsFalse(string.IsNullOrEmpty(componentTwoPath));
+            if (componentLayout >= ComponentLayout.Three) PropBindingsAssert.IsFalse(string.IsNullOrEmpty(componentThreePath));
+            if (componentLayout >= ComponentLayout.Four) PropBindingsAssert.IsFalse(string.IsNullOrEmpty(componentFourPath));
 
-            var result = new BindableProperty
+            return new BindableProperty
             {
                 _target = target,
+                _descriptorId = string.Empty,
                 _path = path,
                 _kind = kind,
-                _componentLayout = ComponentLayout.Two,
+                _componentLayout = componentLayout,
                 _componentOnePath = componentOnePath,
-                _componentTwoPath = componentTwoPath,
-                _componentThreePath = string.Empty,
-                _componentFourPath = string.Empty,
+                _componentTwoPath = componentTwoPath ?? string.Empty,
+                _componentThreePath = componentThreePath ?? string.Empty,
+                _componentFourPath = componentFourPath ?? string.Empty
             };
-            result.ComputeAndCacheIdentityHash();
-            return result;
         }
 
-        public static BindableProperty CreateThreeComponent(Object target, string path, ValueKind kind, string componentOnePath, string componentTwoPath, string componentThreePath)
-        {
-            PropBindingsAssert.IsNotNull(target);
-            PropBindingsAssert.IsFalse(string.IsNullOrEmpty(path));
-            PropBindingsAssert.IsFalse(string.IsNullOrEmpty(componentOnePath));
-            PropBindingsAssert.IsFalse(string.IsNullOrEmpty(componentTwoPath));
-            PropBindingsAssert.IsFalse(string.IsNullOrEmpty(componentThreePath));
-
-            var result = new BindableProperty
-            {
-                _target = target,
-                _path = path,
-                _kind = kind,
-                _componentLayout = ComponentLayout.Three,
-                _componentOnePath = componentOnePath,
-                _componentTwoPath = componentTwoPath,
-                _componentThreePath = componentThreePath,
-                _componentFourPath = string.Empty,
-            };
-            result.ComputeAndCacheIdentityHash();
-            return result;
-        }
-
-        public static BindableProperty CreateFourComponent(Object target, string path, ValueKind kind, string componentOnePath, string componentTwoPath, string componentThreePath, string componentFourPath)
-        {
-            PropBindingsAssert.IsNotNull(target);
-            PropBindingsAssert.IsFalse(string.IsNullOrEmpty(path));
-            PropBindingsAssert.IsFalse(string.IsNullOrEmpty(componentOnePath));
-            PropBindingsAssert.IsFalse(string.IsNullOrEmpty(componentTwoPath));
-            PropBindingsAssert.IsFalse(string.IsNullOrEmpty(componentThreePath));
-            PropBindingsAssert.IsFalse(string.IsNullOrEmpty(componentFourPath));
-
-            var result = new BindableProperty
-            {
-                _target = target,
-                _path = path,
-                _kind = kind,
-                _componentLayout = ComponentLayout.Four,
-                _componentOnePath = componentOnePath,
-                _componentTwoPath = componentTwoPath,
-                _componentThreePath = componentThreePath,
-                _componentFourPath = componentFourPath
-            };
-            result.ComputeAndCacheIdentityHash();
-            return result;
-        }
-
-        public static BindableProperty CreateWithComponentLayout(Object target, string path, ValueKind kind, ComponentLayout componentLayout, string componentOnePath, string componentTwoPath = null, string componentThreePath = null, string componentFourPath = null)
-        {
-            switch (componentLayout)
-            {
-                case ComponentLayout.One:
-                    return CreateScalar(target, path, kind);
-                case ComponentLayout.Two:
-                    return CreateTwoComponent(target, path, kind, componentOnePath, componentTwoPath);
-                case ComponentLayout.Three:
-                    return CreateThreeComponent(target, path, kind, componentOnePath, componentTwoPath, componentThreePath);
-                case ComponentLayout.Four:
-                    return CreateFourComponent(target, path, kind, componentOnePath, componentTwoPath, componentThreePath, componentFourPath);
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(componentLayout), componentLayout, null);
-            }
-        }
-
-        private void ComputeAndCacheIdentityHash()
+        private long ComputeIdentityHash()
         {
             unchecked
             {
                 long hash = _target != null ? _target.GetHashCode() : 0L;
-                hash = hash * 6364136223846793005L + (_path != null ? _path.GetHashCode() : 0L);
+                if (HasDescriptor)
+                    return hash * 6364136223846793005L + StringComparer.Ordinal.GetHashCode(_descriptorId);
+                hash = hash * 6364136223846793005L + (_path?.GetHashCode() ?? 0L);
                 hash = hash * 6364136223846793005L + _kind.GetHashCode();
                 hash = hash * 6364136223846793005L + _componentLayout.GetHashCode();
                 hash = hash * 6364136223846793005L + (_componentOnePath?.GetHashCode() ?? 0);
-                hash = hash * 6364136223846793005L + (_componentTwoPath?.GetHashCode() ?? 0);
-                hash = hash * 6364136223846793005L + (_componentThreePath?.GetHashCode() ?? 0);
-                hash = hash * 6364136223846793005L + (_componentFourPath?.GetHashCode() ?? 0);
-                _identityHash = hash;
+                hash = hash * 6364136223846793005L + (_componentTwoPath ?? string.Empty).GetHashCode();
+                hash = hash * 6364136223846793005L + (_componentThreePath ?? string.Empty).GetHashCode();
+                hash = hash * 6364136223846793005L + (_componentFourPath ?? string.Empty).GetHashCode();
+                return hash;
             }
-            _identityHashComputed = true;
         }
 
         public bool Equals(BindableProperty other)
         {
-            if (!_identityHashComputed) ComputeAndCacheIdentityHash();
-            if (!other._identityHashComputed) other.ComputeAndCacheIdentityHash();
-            return _identityHash == other._identityHash;
+            if (_target != other._target || HasDescriptor != other.HasDescriptor) return false;
+            if (HasDescriptor)
+                return string.Equals(_descriptorId, other._descriptorId, StringComparison.Ordinal);
+
+            return ComputeIdentityHash() == other.ComputeIdentityHash() &&
+                   _path == other._path &&
+                   _kind == other._kind &&
+                   _componentLayout == other._componentLayout &&
+                   _componentOnePath == other._componentOnePath &&
+                   (_componentTwoPath ?? string.Empty) == (other._componentTwoPath ?? string.Empty) &&
+                   (_componentThreePath ?? string.Empty) == (other._componentThreePath ?? string.Empty) &&
+                   (_componentFourPath ?? string.Empty) == (other._componentFourPath ?? string.Empty);
         }
 
         public override bool Equals(object obj)
@@ -216,10 +173,8 @@ namespace TimboJimbo.PropertyBindings
 
         public override int GetHashCode()
         {
-            if (!_identityHashComputed)
-                ComputeAndCacheIdentityHash();
-
-            return (int)(_identityHash ^ (_identityHash >> 32));
+            long identityHash = ComputeIdentityHash();
+            return (int)(identityHash ^ (identityHash >> 32));
         }
 
         public static bool operator ==(BindableProperty left, BindableProperty right)

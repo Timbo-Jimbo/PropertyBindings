@@ -14,6 +14,7 @@ namespace TimboJimbo.PropertyBindings
         {
             public int Priority;
             public Type BindingType;
+            public IReadOnlyList<IPropertyDescriptor> Descriptors;
             public MatchesDelegate Matches;
             public CreateDelegate Create;
         }
@@ -25,14 +26,29 @@ namespace TimboJimbo.PropertyBindings
             const int fallbackPriority = 1000;
 
             // Specialized bindings (order matters — most specific first)
-            Register<TransformPropertyBinding>(TransformPropertyBinding.CanBind, (root, p) => new TransformPropertyBinding(root, p), fallbackPriority);
-            Register<CanvasGroupPropertyBinding>(CanvasGroupPropertyBinding.CanBind, (root, p) => new CanvasGroupPropertyBinding(root, p), fallbackPriority);
-            Register<ImagePropertyBinding>(ImagePropertyBinding.CanBind, (root, p) => new ImagePropertyBinding(root, p), fallbackPriority);
-            Register<GraphicPropertyBinding>(GraphicPropertyBinding.CanBind, (root, p) => new GraphicPropertyBinding(root, p), fallbackPriority);
-            Register<SpriteRendererPropertyBinding>(SpriteRendererPropertyBinding.CanBind, (root, p) => new SpriteRendererPropertyBinding(root, p), fallbackPriority);
-            Register<CameraPropertyBinding>(CameraPropertyBinding.CanBind, (root, p) => new CameraPropertyBinding(root, p), fallbackPriority);
-            Register<BehaviourActivationPropertyBinding>(BehaviourActivationPropertyBinding.CanBind, (root, p) => new BehaviourActivationPropertyBinding(root, p), fallbackPriority);
-            Register<GameObjectActivationPropertyBinding>(GameObjectActivationPropertyBinding.CanBind, (root, p) => new GameObjectActivationPropertyBinding(root, p), fallbackPriority);
+            Register<TransformPropertyBinding>((root, p) => new TransformPropertyBinding(root, p), fallbackPriority,
+                TransformProperties.LocalPosition, TransformProperties.LocalRotation, TransformProperties.LocalScale,
+                RectTransformProperties.AnchorMin, RectTransformProperties.AnchorMax,
+                RectTransformProperties.AnchoredPosition, RectTransformProperties.SizeDelta, RectTransformProperties.Pivot);
+            Register<CanvasGroupPropertyBinding>((root, p) => new CanvasGroupPropertyBinding(root, p), fallbackPriority,
+                CanvasGroupProperties.Alpha, CanvasGroupProperties.Interactable,
+                CanvasGroupProperties.BlocksRaycasts, CanvasGroupProperties.IgnoreParentGroups);
+            Register<ImagePropertyBinding>((root, p) => new ImagePropertyBinding(root, p), fallbackPriority,
+                ImageProperties.FillAmount, ImageProperties.FillClockwise, ImageProperties.PreserveAspect,
+                ImageProperties.FillCenter, ImageProperties.PixelsPerUnitMultiplier, ImageProperties.Type,
+                ImageProperties.FillMethod, ImageProperties.FillOrigin, ImageProperties.Sprite);
+            Register<GraphicPropertyBinding>((root, p) => new GraphicPropertyBinding(root, p), fallbackPriority,
+                GraphicProperties.Color, GraphicProperties.RaycastTarget, GraphicProperties.RaycastPadding);
+            Register<SpriteRendererPropertyBinding>((root, p) => new SpriteRendererPropertyBinding(root, p), fallbackPriority,
+                SpriteRendererProperties.Color, SpriteRendererProperties.Size,
+                SpriteRendererProperties.FlipX, SpriteRendererProperties.FlipY);
+            Register<CameraPropertyBinding>((root, p) => new CameraPropertyBinding(root, p), fallbackPriority,
+                CameraProperties.FieldOfView, CameraProperties.OrthographicSize, CameraProperties.BackgroundColor,
+                CameraProperties.NearClipPlane, CameraProperties.FarClipPlane);
+            Register<BehaviourActivationPropertyBinding>((root, p) => new BehaviourActivationPropertyBinding(root, p), fallbackPriority,
+                BehaviourProperties.Enabled);
+            Register<GameObjectActivationPropertyBinding>((root, p) => new GameObjectActivationPropertyBinding(root, p), fallbackPriority,
+                GameObjectProperties.ActiveSelf);
 
             // Fallbacks
             Register<GenericPropertyBinding>(GenericPropertyBinding.CanBind, (root, p) => new GenericPropertyBinding(root, p), fallbackPriority + 1);
@@ -48,8 +64,50 @@ namespace TimboJimbo.PropertyBindings
                 throw new ArgumentException($"{bindingType.FullName} does not implement {nameof(IPropertyBinding)}.", nameof(bindingType));
             var entry = new Entry { Priority = priority, BindingType = bindingType, Matches = matches, Create = create };
 
+            Insert(entry);
+        }
+
+        public static void Register(
+            Type bindingType,
+            IReadOnlyList<IPropertyDescriptor> descriptors,
+            CreateDelegate create,
+            int priority = 0)
+        {
+            if (bindingType == null) throw new ArgumentNullException(nameof(bindingType));
+            if (!typeof(IPropertyBinding).IsAssignableFrom(bindingType))
+                throw new ArgumentException($"{bindingType.FullName} does not implement {nameof(IPropertyBinding)}.", nameof(bindingType));
+            if (descriptors == null || descriptors.Count == 0)
+                throw new ArgumentException("At least one descriptor is required.", nameof(descriptors));
+
+            var descriptorCopy = new IPropertyDescriptor[descriptors.Count];
+            for (int i = 0; i < descriptors.Count; i++)
+            {
+                descriptorCopy[i] = descriptors[i] ?? throw new ArgumentException("Descriptors cannot contain null.", nameof(descriptors));
+                PropertyDescriptorRegistry.Register(descriptorCopy[i]);
+            }
+
+            Insert(new Entry
+            {
+                Priority = priority,
+                BindingType = bindingType,
+                Descriptors = descriptorCopy,
+                Matches = property => MatchesAnyDescriptor(property, descriptorCopy),
+                Create = create
+            });
+        }
+
+        public static void Register<TBinding>(
+            IReadOnlyList<IPropertyDescriptor> descriptors,
+            CreateDelegate create,
+            int priority = 0)
+            where TBinding : IPropertyBinding => Register(typeof(TBinding), descriptors, create, priority);
+
+        private static void Insert(Entry entry)
+        {
+            if (entry.Create == null) throw new ArgumentNullException(nameof(entry.Create));
+
             int index = 0;
-            while (index < _entries.Count && _entries[index].Priority <= priority)
+            while (index < _entries.Count && _entries[index].Priority <= entry.Priority)
                 index++;
 
             _entries.Insert(index, entry);
@@ -57,6 +115,19 @@ namespace TimboJimbo.PropertyBindings
 
         private static void Register<TBinding>(MatchesDelegate matches, CreateDelegate create, int priority)
             where TBinding : IPropertyBinding => Register(typeof(TBinding), matches, create, priority);
+
+        private static void Register<TBinding>(
+            CreateDelegate create,
+            int priority,
+            params IPropertyDescriptor[] descriptors)
+            where TBinding : IPropertyBinding => Register(typeof(TBinding), descriptors, create, priority);
+
+        private static bool MatchesAnyDescriptor(BindableProperty property, IReadOnlyList<IPropertyDescriptor> descriptors)
+        {
+            for (int i = 0; i < descriptors.Count; i++)
+                if (descriptors[i].Matches(property)) return true;
+            return false;
+        }
 
         public static IPropertyBinding Create(GameObject root, BindableProperty property)
         {
@@ -125,10 +196,14 @@ namespace TimboJimbo.PropertyBindings
         {
             var candidates = new List<BindingCandidateReport>(_entries.Count);
             Type selectedType = null;
+            IPropertyDescriptor resolvedDescriptor = null;
+            property.TryGetDescriptor(out resolvedDescriptor);
 
             for (int i = 0; i < _entries.Count; i++)
             {
                 var entry = _entries[i];
+                var descriptorIds = GetDescriptorIds(entry.Descriptors);
+                var matchKind = entry.Descriptors != null ? BindingMatchKind.Descriptor : BindingMatchKind.Predicate;
                 bool matched;
                 try
                 {
@@ -136,13 +211,15 @@ namespace TimboJimbo.PropertyBindings
                 }
                 catch (Exception exception)
                 {
-                    candidates.Add(new BindingCandidateReport(entry.Priority, entry.BindingType, false, null, exception));
+                    candidates.Add(new BindingCandidateReport(entry.Priority, entry.BindingType, descriptorIds,
+                        matchKind, false, null, exception));
                     continue;
                 }
 
                 if (!matched)
                 {
-                    candidates.Add(new BindingCandidateReport(entry.Priority, entry.BindingType, false, null, null));
+                    candidates.Add(new BindingCandidateReport(entry.Priority, entry.BindingType, descriptorIds,
+                        BindingMatchKind.None, false, null, null));
                     continue;
                 }
 
@@ -152,11 +229,13 @@ namespace TimboJimbo.PropertyBindings
                     binding = entry.Create(root, property);
                     var bindingType = binding?.GetType();
                     selectedType ??= bindingType;
-                    candidates.Add(new BindingCandidateReport(entry.Priority, entry.BindingType, true, bindingType, null));
+                    candidates.Add(new BindingCandidateReport(entry.Priority, entry.BindingType, descriptorIds,
+                        matchKind, true, bindingType, null));
                 }
                 catch (Exception exception)
                 {
-                    candidates.Add(new BindingCandidateReport(entry.Priority, entry.BindingType, true, null, exception));
+                    candidates.Add(new BindingCandidateReport(entry.Priority, entry.BindingType, descriptorIds,
+                        matchKind, true, null, exception));
                 }
                 finally
                 {
@@ -165,7 +244,15 @@ namespace TimboJimbo.PropertyBindings
             }
 
             bool isLiveInstance = root != null && root.scene.IsValid() && root.scene.isLoaded;
-            return new BindingResolutionReport(property, isLiveInstance, selectedType, candidates);
+            return new BindingResolutionReport(property, isLiveInstance, selectedType, resolvedDescriptor, candidates);
+        }
+
+        private static IReadOnlyList<string> GetDescriptorIds(IReadOnlyList<IPropertyDescriptor> descriptors)
+        {
+            if (descriptors == null) return Array.Empty<string>();
+            var ids = new string[descriptors.Count];
+            for (int i = 0; i < descriptors.Count; i++) ids[i] = descriptors[i].Id;
+            return ids;
         }
     }
 }

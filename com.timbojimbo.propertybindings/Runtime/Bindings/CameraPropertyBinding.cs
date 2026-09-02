@@ -19,11 +19,6 @@ namespace TimboJimbo.PropertyBindings.Bindings
                 throw new System.ArgumentException($"CameraPropertyBinding does not support property path: {property.Path}", nameof(property));
         }
 
-        public static bool CanBind(BindableProperty property)
-        {
-            return TryGetBindingInfo(property, out _, out _);
-        }
-
         private static bool TryGetBindingInfo(BindableProperty property, out Camera camera, out CameraProperty cameraProperty)
         {
             camera = property.Target as Camera;
@@ -34,27 +29,18 @@ namespace TimboJimbo.PropertyBindings.Bindings
                 return false;
             }
 
-            switch (property.Path)
+            if (CameraProperties.FieldOfView.Matches(property)) cameraProperty = CameraProperty.FieldOfView;
+            else if (CameraProperties.OrthographicSize.Matches(property)) cameraProperty = CameraProperty.OrthographicSize;
+            else if (CameraProperties.BackgroundColor.Matches(property)) cameraProperty = CameraProperty.BackgroundColor;
+            else if (CameraProperties.NearClipPlane.Matches(property)) cameraProperty = CameraProperty.NearClipPlane;
+            else if (CameraProperties.FarClipPlane.Matches(property)) cameraProperty = CameraProperty.FarClipPlane;
+            else
             {
-                case "field of view":
-                    cameraProperty = CameraProperty.FieldOfView;
-                    return true;
-                case "orthographic size":
-                    cameraProperty = CameraProperty.OrthographicSize;
-                    return true;
-                case "m_BackGroundColor":
-                    cameraProperty = CameraProperty.BackgroundColor;
-                    return true;
-                case "near clip plane":
-                    cameraProperty = CameraProperty.NearClipPlane;
-                    return true;
-                case "far clip plane":
-                    cameraProperty = CameraProperty.FarClipPlane;
-                    return true;
-                default:
-                    cameraProperty = default;
-                    return false;
+                camera = null;
+                cameraProperty = default;
+                return false;
             }
+            return true;
         }
 
         public override void Dispose()

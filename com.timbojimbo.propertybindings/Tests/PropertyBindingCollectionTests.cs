@@ -46,7 +46,7 @@ namespace TimboJimboTests.PropertyBindings
         {
             _comp.Test = 123f;
 
-            var prop = BindableProperty.CreateScalar(_comp, nameof(PropertyBag.Test), ValueKind.Float);
+            var prop = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.Test), ValueKind.Float);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -66,7 +66,7 @@ namespace TimboJimboTests.PropertyBindings
         {
             _comp.Test2 = false;
 
-            var prop = BindableProperty.CreateScalar(_comp, nameof(PropertyBag.Test2), ValueKind.Bool);
+            var prop = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.Test2), ValueKind.Bool);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -87,8 +87,8 @@ namespace TimboJimboTests.PropertyBindings
             _comp.TestFloatA = 1f;
             _comp.TestFloatB = 2f;
 
-            var propA = BindableProperty.CreateScalar(_comp, nameof(PropertyBag.TestFloatA), ValueKind.Float);
-            var propB = BindableProperty.CreateScalar(_comp, nameof(PropertyBag.TestFloatB), ValueKind.Float);
+            var propA = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestFloatA), ValueKind.Float);
+            var propB = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestFloatB), ValueKind.Float);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { propA, propB }))
             {
@@ -108,7 +108,7 @@ namespace TimboJimboTests.PropertyBindings
         {
             _comp.TestFloatA = 0f;
 
-            var prop = BindableProperty.CreateScalar(_comp, nameof(PropertyBag.TestFloatA), ValueKind.Float);
+            var prop = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestFloatA), ValueKind.Float);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -124,7 +124,7 @@ namespace TimboJimboTests.PropertyBindings
         [Test]
         public void TryDirectWrite_Throws_DuringBulkWriteScope()
         {
-            var prop = BindableProperty.CreateScalar(_comp, nameof(PropertyBag.TestFloatA), ValueKind.Float);
+            var prop = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestFloatA), ValueKind.Float);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -139,7 +139,7 @@ namespace TimboJimboTests.PropertyBindings
         [Test]
         public void TryBulkWrite_Throws_WhenNoBulkWriteInProgress()
         {
-            var prop = BindableProperty.CreateScalar(_comp, nameof(PropertyBag.TestFloatA), ValueKind.Float);
+            var prop = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestFloatA), ValueKind.Float);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -151,7 +151,7 @@ namespace TimboJimboTests.PropertyBindings
         [Test]
         public void TransformPosition_ReadWrite()
         {
-            var posProperty = BindableProperty.CreateThreeComponent(_go.transform, "m_LocalPosition", ValueKind.Vector3, "m_LocalPosition.x", "m_LocalPosition.y", "m_LocalPosition.z");
+            var posProperty = BindableProperty.Create(_go.transform, TransformProperties.LocalPosition);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { posProperty }))
             {
@@ -173,7 +173,8 @@ namespace TimboJimboTests.PropertyBindings
         {
             _comp.TestVector3 = new Vector3(1f, 2f, 3f);
 
-            var prop = BindableProperty.CreateThreeComponent(_comp, nameof(PropertyBag.TestVector3), ValueKind.Vector3, $"{nameof(PropertyBag.TestVector3)}.x", $"{nameof(PropertyBag.TestVector3)}.y", $"{nameof(PropertyBag.TestVector3)}.z");
+            var prop = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestVector3), ValueKind.Vector3,
+                ComponentLayout.Three, $"{nameof(PropertyBag.TestVector3)}.x", $"{nameof(PropertyBag.TestVector3)}.y", $"{nameof(PropertyBag.TestVector3)}.z");
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -190,7 +191,8 @@ namespace TimboJimboTests.PropertyBindings
         {
             _comp.TestVector2 = new Vector2(4f, 5f);
 
-            var prop = BindableProperty.CreateTwoComponent(_comp, nameof(PropertyBag.TestVector2), ValueKind.Vector2, $"{nameof(PropertyBag.TestVector2)}.x", $"{nameof(PropertyBag.TestVector2)}.y");
+            var prop = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestVector2), ValueKind.Vector2,
+                ComponentLayout.Two, $"{nameof(PropertyBag.TestVector2)}.x", $"{nameof(PropertyBag.TestVector2)}.y");
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -207,7 +209,8 @@ namespace TimboJimboTests.PropertyBindings
         {
             _comp.TestVector4 = new Vector4(1f, 2f, 3f, 4f);
 
-            var prop = BindableProperty.CreateFourComponent(_comp, nameof(PropertyBag.TestVector4), ValueKind.Vector4, $"{nameof(PropertyBag.TestVector4)}.x", $"{nameof(PropertyBag.TestVector4)}.y", $"{nameof(PropertyBag.TestVector4)}.z", $"{nameof(PropertyBag.TestVector4)}.w");
+            var prop = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestVector4), ValueKind.Vector4,
+                ComponentLayout.Four, $"{nameof(PropertyBag.TestVector4)}.x", $"{nameof(PropertyBag.TestVector4)}.y", $"{nameof(PropertyBag.TestVector4)}.z", $"{nameof(PropertyBag.TestVector4)}.w");
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -224,7 +227,8 @@ namespace TimboJimboTests.PropertyBindings
         {
             _comp.TestColor = new Color(0.1f, 0.2f, 0.3f, 0.4f);
 
-            var prop = BindableProperty.CreateFourComponent(_comp, nameof(PropertyBag.TestColor), ValueKind.Color, $"{nameof(PropertyBag.TestColor)}.r", $"{nameof(PropertyBag.TestColor)}.g", $"{nameof(PropertyBag.TestColor)}.b", $"{nameof(PropertyBag.TestColor)}.a");
+            var prop = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestColor), ValueKind.Color,
+                ComponentLayout.Four, $"{nameof(PropertyBag.TestColor)}.r", $"{nameof(PropertyBag.TestColor)}.g", $"{nameof(PropertyBag.TestColor)}.b", $"{nameof(PropertyBag.TestColor)}.a");
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -244,9 +248,7 @@ namespace TimboJimboTests.PropertyBindings
             var written = new Color(0.7f, 0.6f, 0.5f, 0.9f);
             graphic.color = initial;
             int callsBeforeBinding = graphic.ColorSetterCallCount;
-            var property = BindableProperty.CreateFourComponent(
-                graphic, "m_Color", ValueKind.Color,
-                "m_Color.r", "m_Color.g", "m_Color.b", "m_Color.a");
+            var property = GraphicProperties.Color.Create(graphic);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { property }))
             {
@@ -264,9 +266,7 @@ namespace TimboJimboTests.PropertyBindings
         public void GraphicColor_RepeatedBulkWritesRemainSafe()
         {
             var graphic = _go.AddComponent<SetterAwareGraphic>();
-            var property = BindableProperty.CreateFourComponent(
-                graphic, "m_Color", ValueKind.Color,
-                "m_Color.r", "m_Color.g", "m_Color.b", "m_Color.a");
+            var property = GraphicProperties.Color.Create(graphic);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { property }))
             using (collection.BulkWriteScope())
@@ -284,7 +284,7 @@ namespace TimboJimboTests.PropertyBindings
         [Test]
         public void GenericBinding_RejectsMalformedColorLayoutAtConstruction()
         {
-            var malformed = BindableProperty.CreateScalar(_comp, nameof(PropertyBag.TestColor), ValueKind.Color);
+            var malformed = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestColor), ValueKind.Color);
 
             Assert.IsFalse(GenericPropertyBinding.CanBind(malformed));
             var exception = Assert.Throws<ArgumentException>(() => new GenericPropertyBinding(_go, malformed));
@@ -295,8 +295,8 @@ namespace TimboJimboTests.PropertyBindings
         [Test]
         public void MalformedComposite_BufferCategoryMismatchFailsDuringBind()
         {
-            var property = BindableProperty.CreateFourComponent(
-                _comp, nameof(PropertyBag.TestColor), ValueKind.Color,
+            var property = BindableProperty.CreateAdHoc(
+                _comp, nameof(PropertyBag.TestColor), ValueKind.Color, ComponentLayout.Four,
                 $"{nameof(PropertyBag.TestColor)}.r",
                 $"{nameof(PropertyBag.TestColor)}.g",
                 $"{nameof(PropertyBag.TestColor)}.b",
@@ -312,7 +312,7 @@ namespace TimboJimboTests.PropertyBindings
         public void ScalarPublicColorProperty_ResolvesToReflectionBinding()
         {
             var graphic = _go.AddComponent<SetterAwareGraphic>();
-            var property = BindableProperty.CreateScalar(graphic, nameof(SetterAwareGraphic.color), ValueKind.Color);
+            var property = BindableProperty.CreateAdHoc(graphic, nameof(SetterAwareGraphic.color), ValueKind.Color);
 
             Assert.AreEqual(typeof(ReflectionPropertyBinding), PropertyBindingRegistry.ResolveBindingType(_go, property));
             var report = PropertyBindingRegistry.Diagnose(_go, property);
@@ -338,7 +338,7 @@ namespace TimboJimboTests.PropertyBindings
         public void Registry_CreateAndResolveContinueAfterCandidateConstructionFailure()
         {
             const string path = "__RegistryFallbackTest__";
-            var property = BindableProperty.CreateScalar(_comp, path, ValueKind.Float);
+            var property = BindableProperty.CreateAdHoc(_comp, path, ValueKind.Float);
             PropertyBindingRegistry.Register(typeof(TestPropertyBinding),
                 candidate => candidate.Path == path,
                 (_, _) => throw new InvalidOperationException("Expected test failure."),
@@ -363,7 +363,8 @@ namespace TimboJimboTests.PropertyBindings
         {
             _comp.TestQuaternion = new Quaternion(0f, 0f, 0f, 1f);
 
-            var prop = BindableProperty.CreateFourComponent(_comp, nameof(PropertyBag.TestQuaternion), ValueKind.Quaternion, $"{nameof(PropertyBag.TestQuaternion)}.x", $"{nameof(PropertyBag.TestQuaternion)}.y", $"{nameof(PropertyBag.TestQuaternion)}.z", $"{nameof(PropertyBag.TestQuaternion)}.w");
+            var prop = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestQuaternion), ValueKind.Quaternion,
+                ComponentLayout.Four, $"{nameof(PropertyBag.TestQuaternion)}.x", $"{nameof(PropertyBag.TestQuaternion)}.y", $"{nameof(PropertyBag.TestQuaternion)}.z", $"{nameof(PropertyBag.TestQuaternion)}.w");
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -379,7 +380,8 @@ namespace TimboJimboTests.PropertyBindings
         [Test]
         public void Quaternion_BulkWrite()
         {
-            var prop = BindableProperty.CreateFourComponent(_comp, nameof(PropertyBag.TestQuaternion), ValueKind.Quaternion, $"{nameof(PropertyBag.TestQuaternion)}.x", $"{nameof(PropertyBag.TestQuaternion)}.y", $"{nameof(PropertyBag.TestQuaternion)}.z", $"{nameof(PropertyBag.TestQuaternion)}.w");
+            var prop = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestQuaternion), ValueKind.Quaternion,
+                ComponentLayout.Four, $"{nameof(PropertyBag.TestQuaternion)}.x", $"{nameof(PropertyBag.TestQuaternion)}.y", $"{nameof(PropertyBag.TestQuaternion)}.z", $"{nameof(PropertyBag.TestQuaternion)}.w");
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -399,7 +401,7 @@ namespace TimboJimboTests.PropertyBindings
         {
             _notifyComp.DidApplyAnimationPropertiesBeenCalled = false;
 
-            var prop = BindableProperty.CreateScalar(_notifyComp, nameof(NotifyOnWrite.Test), ValueKind.Float);
+            var prop = BindableProperty.CreateAdHoc(_notifyComp, nameof(NotifyOnWrite.Test), ValueKind.Float);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -416,7 +418,7 @@ namespace TimboJimboTests.PropertyBindings
         {
             _notifyComp.DidApplyAnimationPropertiesBeenCalled = false;
 
-            var prop = BindableProperty.CreateScalar(_notifyComp, nameof(NotifyOnWrite.Test), ValueKind.Float);
+            var prop = BindableProperty.CreateAdHoc(_notifyComp, nameof(NotifyOnWrite.Test), ValueKind.Float);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -441,7 +443,7 @@ namespace TimboJimboTests.PropertyBindings
             // This test explicitly exercises the manual StartBulkWrite/EndBulkWrite workflow.
             _notifyComp.DidApplyAnimationPropertiesBeenCalled = false;
 
-            var prop = BindableProperty.CreateScalar(_notifyComp, nameof(NotifyOnWrite.Test), ValueKind.Float);
+            var prop = BindableProperty.CreateAdHoc(_notifyComp, nameof(NotifyOnWrite.Test), ValueKind.Float);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -469,7 +471,7 @@ namespace TimboJimboTests.PropertyBindings
             _serializedFieldBag.Test = 5f;
 
             // [field: SerializeField] on an auto-property generates a backing field named <Test>k__BackingField
-            var prop = BindableProperty.CreateScalar(_serializedFieldBag, "<Test>k__BackingField", ValueKind.Float);
+            var prop = BindableProperty.CreateAdHoc(_serializedFieldBag, "<Test>k__BackingField", ValueKind.Float);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -487,7 +489,7 @@ namespace TimboJimboTests.PropertyBindings
         [Test]
         public void SerializedFieldAutoProperty_BulkWrite()
         {
-            var prop = BindableProperty.CreateScalar(_serializedFieldBag, "<Test>k__BackingField", ValueKind.Float);
+            var prop = BindableProperty.CreateAdHoc(_serializedFieldBag, "<Test>k__BackingField", ValueKind.Float);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -505,7 +507,7 @@ namespace TimboJimboTests.PropertyBindings
         [Test]
         public void PrivateSerializedField_ReadWrite()
         {
-            var prop = BindableProperty.CreateScalar(_privateBag, "_test", ValueKind.Float);
+            var prop = BindableProperty.CreateAdHoc(_privateBag, "_test", ValueKind.Float);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -526,7 +528,7 @@ namespace TimboJimboTests.PropertyBindings
         [Test]
         public void PrivateSerializedField_BulkWrite()
         {
-            var prop = BindableProperty.CreateScalar(_privateBag, "_test", ValueKind.Float);
+            var prop = BindableProperty.CreateAdHoc(_privateBag, "_test", ValueKind.Float);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -547,7 +549,7 @@ namespace TimboJimboTests.PropertyBindings
             var mat = new Material(Shader.Find("Standard")) { name = "TestMat" };
             _comp.TestReference = mat;
 
-            var prop = BindableProperty.CreateScalar(_comp, nameof(PropertyBag.TestReference), ValueKind.Reference);
+            var prop = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestReference), ValueKind.Reference);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -573,7 +575,7 @@ namespace TimboJimboTests.PropertyBindings
             var mat = new Material(Shader.Find("Standard"));
             _comp.TestReference = mat;
 
-            var prop = BindableProperty.CreateScalar(_comp, nameof(PropertyBag.TestReference), ValueKind.Reference);
+            var prop = BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestReference), ValueKind.Reference);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -594,8 +596,7 @@ namespace TimboJimboTests.PropertyBindings
         {
             _child.SetActive(true);
 
-            // m_IsActive is the serialized path for GameObject.activeSelf
-            var prop = BindableProperty.CreateScalar(_child, "m_IsActive", ValueKind.Bool);
+            var prop = BindableProperty.Create(_child, GameObjectProperties.ActiveSelf);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -616,8 +617,7 @@ namespace TimboJimboTests.PropertyBindings
         [Test]
         public void Component_ToggleEnabled()
         {
-            // Behaviour.m_Enabled is the serialized path for the enabled toggle
-            var prop = BindableProperty.CreateScalar(_comp, "m_Enabled", ValueKind.Bool);
+            var prop = BindableProperty.Create(_comp, BehaviourProperties.Enabled);
 
             _comp.enabled = true;
 
@@ -642,7 +642,7 @@ namespace TimboJimboTests.PropertyBindings
         {
             _childComp.enabled = true;
 
-            var prop = BindableProperty.CreateScalar(_childComp, "m_Enabled", ValueKind.Bool);
+            var prop = BindableProperty.Create(_childComp, BehaviourProperties.Enabled);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -668,9 +668,9 @@ namespace TimboJimboTests.PropertyBindings
 
             var props = new[]
             {
-                BindableProperty.CreateTwoComponent(_comp, nameof(PropertyBag.TestVector2), ValueKind.Vector2, $"{nameof(PropertyBag.TestVector2)}.x", $"{nameof(PropertyBag.TestVector2)}.y"),
-                BindableProperty.CreateThreeComponent(_comp, nameof(PropertyBag.TestVector3), ValueKind.Vector3, $"{nameof(PropertyBag.TestVector3)}.x", $"{nameof(PropertyBag.TestVector3)}.y", $"{nameof(PropertyBag.TestVector3)}.z"),
-                BindableProperty.CreateFourComponent(_comp, nameof(PropertyBag.TestColor), ValueKind.Color, $"{nameof(PropertyBag.TestColor)}.r", $"{nameof(PropertyBag.TestColor)}.g", $"{nameof(PropertyBag.TestColor)}.b", $"{nameof(PropertyBag.TestColor)}.a"),
+                BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestVector2), ValueKind.Vector2, ComponentLayout.Two, $"{nameof(PropertyBag.TestVector2)}.x", $"{nameof(PropertyBag.TestVector2)}.y"),
+                BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestVector3), ValueKind.Vector3, ComponentLayout.Three, $"{nameof(PropertyBag.TestVector3)}.x", $"{nameof(PropertyBag.TestVector3)}.y", $"{nameof(PropertyBag.TestVector3)}.z"),
+                BindableProperty.CreateAdHoc(_comp, nameof(PropertyBag.TestColor), ValueKind.Color, ComponentLayout.Four, $"{nameof(PropertyBag.TestColor)}.r", $"{nameof(PropertyBag.TestColor)}.g", $"{nameof(PropertyBag.TestColor)}.b", $"{nameof(PropertyBag.TestColor)}.a"),
             };
 
             using (var collection = PropertyBindingCollection.Bind(_go, props))
@@ -705,7 +705,7 @@ namespace TimboJimboTests.PropertyBindings
         {
             _arrayBag.PrimitiveArray = new[] { 10, 20, 30 };
 
-            var prop = BindableProperty.CreateScalar(_arrayBag, "PrimitiveArray.Array.data[1]", ValueKind.Int);
+            var prop = BindableProperty.CreateAdHoc(_arrayBag, "PrimitiveArray.Array.data[1]", ValueKind.Int);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -729,7 +729,7 @@ namespace TimboJimboTests.PropertyBindings
                 new ArrayStructValue { Value = 2.5f },
             };
 
-            var prop = BindableProperty.CreateScalar(_arrayBag, "StructArray.Array.data[0].Value", ValueKind.Float);
+            var prop = BindableProperty.CreateAdHoc(_arrayBag, "StructArray.Array.data[0].Value", ValueKind.Float);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -753,7 +753,7 @@ namespace TimboJimboTests.PropertyBindings
                 new ArrayClassValue { Value = 4.5f },
             };
 
-            var prop = BindableProperty.CreateScalar(_arrayBag, "ClassArray.Array.data[1].Value", ValueKind.Float);
+            var prop = BindableProperty.CreateAdHoc(_arrayBag, "ClassArray.Array.data[1].Value", ValueKind.Float);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {
@@ -777,7 +777,7 @@ namespace TimboJimboTests.PropertyBindings
                 new[] { 4, 5, 6 },
             };
 
-            var prop = BindableProperty.CreateScalar(_arrayBag, "NestedPrimitiveArrays.Array.data[1].Array.data[2]", ValueKind.Int);
+            var prop = BindableProperty.CreateAdHoc(_arrayBag, "NestedPrimitiveArrays.Array.data[1].Array.data[2]", ValueKind.Int);
 
             using (var collection = PropertyBindingCollection.Bind(_go, new[] { prop }))
             {

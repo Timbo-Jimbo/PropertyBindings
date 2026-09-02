@@ -18,19 +18,17 @@ namespace TimboJimbo.PropertyBindings.Bindings
                 throw new System.ArgumentException($"GameObjectPropertyBinding does not support property path: {property.Path}", nameof(property));
         }
 
-        public static bool CanBind(BindableProperty property)
-        {
-            return TryGetBindingInfo(property, out _);
-        }
-
         private static bool TryGetBindingInfo(BindableProperty property, out GameObject gameObject)
         {
             gameObject = property.Target as GameObject;
 
-            if (gameObject == null)
+            if (gameObject == null || !GameObjectProperties.ActiveSelf.Matches(property))
+            {
+                gameObject = null;
                 return false;
+            }
 
-            return property.Path is "m_IsActive";
+            return true;
         }
 
         public override void Dispose()

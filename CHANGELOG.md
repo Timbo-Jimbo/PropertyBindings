@@ -4,7 +4,11 @@
 - Generic bindings now reject incompatible component layouts and validate Unity's returned buffer counts during construction
 - Malformed composite bindings now fail at bind time instead of falling through to atomic reflection writes
 - Added structured binding resolution diagnostics with candidate failures and consistent `Create`/`ResolveBindingType` fallback
-- Added typed, extensible property descriptors and canonical descriptors for common Transform and UGUI properties
+- Added typed, extensible property descriptors and canonical descriptors for specialized Unity properties
+- `BindableProperty` is now an explicit descriptor-backed or ad-hoc property; descriptor-backed identity is target plus stable descriptor ID
+- Specialized binding selection and editor discovery are descriptor-driven; Generic and Reflection remain predicate fallbacks
+- Removed structural descriptor fallback and the legacy scalar/component factory family in favor of `Create(...)` and `CreateAdHoc(...)`
+- Added descriptor registry lookup, target/value contract validation, and descriptor-aware diagnostics
 - Added typed `ValueContainer.From(...)` overloads
 - Binding construction now cleans up partial native and collection state after failures
 

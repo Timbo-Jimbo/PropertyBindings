@@ -97,10 +97,9 @@ namespace TimboJimboEditor.PropertyBindings.Utility
                 }
             }
 
-            //ensure they are accessible via reflection (e.g., not internal properties without [SerializeField])
-            // There are some fields that show up in SerializedObject but cannot be accessed via reflection, 
-            // like ie GameObject m_Name
-            output.RemoveAll(bp => !ReflectionPropertyBinding.CanBind(bp));
+            // SerializedObject already proved these paths exist. Binding selection is descriptor-first,
+            // then Generic/Reflection, so filtering solely through Reflection would incorrectly remove
+            // composite and specialized properties.
         }
 
         private static void GetBindablePropertiesFromAnimatableBindings(
@@ -171,7 +170,11 @@ namespace TimboJimboEditor.PropertyBindings.Utility
                 return false;
             }
 
-            bindableProperty = BindableProperty.CreateWithComponentLayout(
+                if (TryCreateDescriptorProperty(
+                    target, propertyPath, valueKind, componentLayout, out bindableProperty))
+                return true;
+
+            bindableProperty = BindableProperty.CreateAdHoc(
                 target: target,
                 path: propertyPath,
                 kind: valueKind,
@@ -183,6 +186,35 @@ namespace TimboJimboEditor.PropertyBindings.Utility
             );
 
             return true;
+        }
+
+        private static bool TryCreateDescriptorProperty(
+            Object target,
+            string serializedPath,
+            ValueKind kind,
+            ComponentLayout layout,
+            out BindableProperty property)
+        {
+            IPropertyDescriptor match = null;
+            var descriptors = PropertyDescriptorRegistry.Descriptors;
+            for (int i = 0; i < descriptors.Count; i++)
+            {
+                var descriptor = descriptors[i];
+                if (!descriptor.SupportsTarget(target) || descriptor.SerializedPath != serializedPath ||
+                    descriptor.Kind != kind || descriptor.Layout != layout)
+                    continue;
+
+                if (match != null)
+                {
+                    property = default;
+                    return false;
+                }
+
+                match = descriptor;
+            }
+
+            property = match?.Create(target) ?? default;
+            return match != null;
         }
 
         private static void FilterBindableProperties(GameObject root, List<BindableProperty> properties)

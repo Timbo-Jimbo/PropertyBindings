@@ -18,19 +18,17 @@ namespace TimboJimbo.PropertyBindings.Bindings
                 throw new System.ArgumentException($"BehaviourPropertyBinding does not support property path: {property.Path}", nameof(property));
         }
 
-        public static bool CanBind(BindableProperty property)
-        {
-            return TryGetBindingInfo(property, out _);
-        }
-
         private static bool TryGetBindingInfo(BindableProperty property, out Behaviour behaviour)
         {
             behaviour = property.Target as Behaviour;
 
-            if (behaviour == null)
+            if (behaviour == null || !BehaviourProperties.Enabled.Matches(property))
+            {
+                behaviour = null;
                 return false;
+            }
 
-            return property.Path is "m_Enabled";
+            return true;
         }
 
         public override void Dispose()

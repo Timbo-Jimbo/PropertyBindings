@@ -77,11 +77,6 @@ namespace TimboJimbo.PropertyBindings.Bindings
             return true;
         }
 
-        public static bool CanBind(BindableProperty property)
-        {
-            return TryGetBindingInfo(property, out _, out _);
-        }
-
         private static bool TryGetBindingInfo(BindableProperty property, out Graphic graphic, out GraphicProperty graphicProperty)
         {
             graphic = property.Target as Graphic;
@@ -92,21 +87,16 @@ namespace TimboJimbo.PropertyBindings.Bindings
                 return false;
             }
 
-            switch (property.Path)
+            if (GraphicProperties.Color.Matches(property)) graphicProperty = GraphicProperty.Color;
+            else if (GraphicProperties.RaycastTarget.Matches(property)) graphicProperty = GraphicProperty.RaycastTarget;
+            else if (GraphicProperties.RaycastPadding.Matches(property)) graphicProperty = GraphicProperty.RaycastPadding;
+            else
             {
-                case "m_Color":
-                    graphicProperty = GraphicProperty.Color;
-                    return true;
-                case "m_RaycastTarget":
-                    graphicProperty = GraphicProperty.RaycastTarget;
-                    return true;
-                case "m_RaycastPadding":
-                    graphicProperty = GraphicProperty.RaycastPadding;
-                    return true;
-                default:
-                    graphicProperty = default;
-                    return false;
+                graphic = null;
+                graphicProperty = default;
+                return false;
             }
+            return true;
         }
 
         private enum GraphicProperty

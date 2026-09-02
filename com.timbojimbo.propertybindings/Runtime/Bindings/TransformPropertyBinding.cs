@@ -20,11 +20,6 @@ namespace TimboJimbo.PropertyBindings.Bindings
                 throw new System.ArgumentException($"TransformPropertyBinding does not support property path: {property.Path}", nameof(property));
         }
 
-        public static bool CanBind(BindableProperty property)
-        {
-            return TryGetBindingInfo(property, out _, out _, out _);
-        }
-
         private static bool TryGetBindingInfo(BindableProperty property, out Transform transform, out RectTransform rectTransform, out TransformProperty transformProperty)
         {
             transform = property.Target as Transform;
@@ -36,35 +31,32 @@ namespace TimboJimbo.PropertyBindings.Bindings
                 return false;
             }
 
-            switch (property.Path)
+            if (TransformProperties.LocalPosition.Matches(property))
             {
-                case "m_LocalPosition":
-                    transformProperty = TransformProperty.Position;
-                    return true;
-                case "m_LocalRotation":
-                    transformProperty = TransformProperty.Rotation;
-                    return true;
-                case "m_LocalScale":
-                    transformProperty = TransformProperty.Scale;
-                    return true;
-                case "m_AnchorMin":
-                    transformProperty = TransformProperty.AnchorMin;
-                    break;
-                case "m_AnchorMax":
-                    transformProperty = TransformProperty.AnchorMax;
-                    break;
-                case "m_AnchoredPosition":
-                    transformProperty = TransformProperty.AnchoredPosition;
-                    break;
-                case "m_SizeDelta":
-                    transformProperty = TransformProperty.SizeDelta;
-                    break;
-                case "m_Pivot":
-                    transformProperty = TransformProperty.Pivot;
-                    break;
-                default:
-                    transformProperty = default;
-                    return false;
+                transformProperty = TransformProperty.Position;
+                return true;
+            }
+            if (TransformProperties.LocalRotation.Matches(property))
+            {
+                transformProperty = TransformProperty.Rotation;
+                return true;
+            }
+            if (TransformProperties.LocalScale.Matches(property))
+            {
+                transformProperty = TransformProperty.Scale;
+                return true;
+            }
+
+            if (RectTransformProperties.AnchorMin.Matches(property)) transformProperty = TransformProperty.AnchorMin;
+            else if (RectTransformProperties.AnchorMax.Matches(property)) transformProperty = TransformProperty.AnchorMax;
+            else if (RectTransformProperties.AnchoredPosition.Matches(property)) transformProperty = TransformProperty.AnchoredPosition;
+            else if (RectTransformProperties.SizeDelta.Matches(property)) transformProperty = TransformProperty.SizeDelta;
+            else if (RectTransformProperties.Pivot.Matches(property)) transformProperty = TransformProperty.Pivot;
+            else
+            {
+                transform = null;
+                transformProperty = default;
+                return false;
             }
 
             // RectTransform-specific properties
@@ -72,6 +64,7 @@ namespace TimboJimbo.PropertyBindings.Bindings
             if (rectTransform == null)
             {
                 transform = null;
+                transformProperty = default;
                 return false;
             }
 
