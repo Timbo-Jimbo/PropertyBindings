@@ -20,9 +20,19 @@ namespace TimboJimbo.PropertyBindings
 
         private PropertyBindingCollection(GameObject root, IReadOnlyList<BindableProperty> properties)
         {
-            foreach (var property in properties)
-                _bindings[property] = PropertyBindingRegistry.Create(root, property);
-            _properties = properties.ToList().AsReadOnly(); // create a copy to ensure immutability
+            try
+            {
+                foreach (var property in properties)
+                    _bindings[property] = PropertyBindingRegistry.Create(root, property);
+                _properties = properties.ToList().AsReadOnly(); // create a copy to ensure immutability
+            }
+            catch
+            {
+                foreach (var binding in _bindings.Values)
+                    binding.Dispose();
+                _bindings.Clear();
+                throw;
+            }
         }
 
         public static PropertyBindingCollection Bind(GameObject root, IReadOnlyList<BindableProperty> properties)

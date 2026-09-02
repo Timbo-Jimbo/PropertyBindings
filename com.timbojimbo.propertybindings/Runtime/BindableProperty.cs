@@ -41,6 +41,27 @@ namespace TimboJimbo.PropertyBindings
 
         public static BindableProperty Invalid => default;
 
+        public static ComponentLayout ExpectedGenericComponentLayout(ValueKind kind)
+        {
+            return kind switch
+            {
+                ValueKind.Vector2 => ComponentLayout.Two,
+                ValueKind.Vector3 => ComponentLayout.Three,
+                ValueKind.Vector4 => ComponentLayout.Four,
+                ValueKind.Color => ComponentLayout.Four,
+                ValueKind.Quaternion => ComponentLayout.Four,
+                _ => ComponentLayout.One
+            };
+        }
+
+        public static bool IsGenericLayoutCompatible(ValueKind kind, ComponentLayout layout) =>
+            kind != ValueKind.Invalid && ExpectedGenericComponentLayout(kind) == layout;
+
+        public static BindableProperty Create<TTarget, TValue>(
+            TTarget target,
+            PropertyDescriptor<TTarget, TValue> descriptor)
+            where TTarget : Object => descriptor.Create(target);
+
         public static BindableProperty CreateUnresolvedTarget(Object target)
         {
             PropBindingsAssert.IsNotNull(target);

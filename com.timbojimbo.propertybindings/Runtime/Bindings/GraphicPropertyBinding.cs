@@ -6,7 +6,6 @@ namespace TimboJimbo.PropertyBindings.Bindings
     public sealed class GraphicPropertyBinding : OptimizedReadWritePropertyBinding
     {
         private Graphic _graphic;
-        private bool _rwColorFromCanvasRenderer;
         private GraphicProperty _property;
 
         public GraphicPropertyBinding(
@@ -19,24 +18,10 @@ namespace TimboJimbo.PropertyBindings.Bindings
         {
             if(!TryGetBindingInfo(property, out _graphic, out _property))
                 throw new System.ArgumentException($"GraphicPropertyBinding does not support property path: {property.Path}", nameof(property));
-
-            _rwColorFromCanvasRenderer = TargetIsConsideredLiveInstance() && _property == GraphicProperty.Color;
-
-            if(_rwColorFromCanvasRenderer)
-            {
-                _graphic.canvasRenderer.SetColor(_graphic.color);
-                _graphic.color = Color.white;
-            }
         }
 
         public override void Dispose()
         {
-            if(_graphic && _rwColorFromCanvasRenderer)
-            {
-                _graphic.color = _graphic.canvasRenderer.GetColor();
-                _graphic.canvasRenderer.SetColor(Color.white);
-            }
-
             _graphic = null;
         }
 
@@ -52,10 +37,7 @@ namespace TimboJimbo.PropertyBindings.Bindings
             switch (_property)
             {
                 case GraphicProperty.Color:
-                    if(_rwColorFromCanvasRenderer)
-                        valueContainer = ValueContainer.FromColor(_graphic.canvasRenderer.GetColor());
-                    else
-                        valueContainer = ValueContainer.FromColor(_graphic.color);
+                    valueContainer = ValueContainer.FromColor(_graphic.color);
                     break;
                 case GraphicProperty.RaycastTarget:
                     valueContainer = ValueContainer.FromBool(_graphic.raycastTarget);
@@ -78,10 +60,9 @@ namespace TimboJimbo.PropertyBindings.Bindings
             switch (_property)
             {
                 case GraphicProperty.Color:
-                    if (_rwColorFromCanvasRenderer)
-                        _graphic.canvasRenderer.SetColor(valueContainer.ColorValue);
-                    else
-                        _graphic.color = valueContainer.ColorValue;
+                    // Graphic.color is virtual. Custom Graphics may use its setter to invalidate
+                    // generated geometry or propagate tint to child CanvasRenderers.
+                    _graphic.color = valueContainer.ColorValue;
                     break;
                 case GraphicProperty.RaycastTarget:
                     _graphic.raycastTarget = valueContainer.BoolValue;

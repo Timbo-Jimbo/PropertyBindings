@@ -32,8 +32,9 @@ namespace TimboJimbo.PropertyBindings.Bindings
         private bool _disposed;
         private bool _targetMustBeNotifiedOnWrite;
 
-        public static bool CanBind(BindableProperty property) => 
-            property.Target is Component && 
+        public static bool CanBind(BindableProperty property) =>
+            property.Target is Component &&
+            BindableProperty.IsGenericLayoutCompatible(property.Kind, property.ComponentLayout) &&
             property.Kind switch
             {
                 ValueKind.Float => true,
@@ -50,7 +51,6 @@ namespace TimboJimbo.PropertyBindings.Bindings
             } &&
             !property.Path.Contains('['); // Unitys Generic Binding system does not support arrays
 
-
         public GenericPropertyBinding(
             GameObject root,
             BindableProperty property
@@ -61,6 +61,14 @@ namespace TimboJimbo.PropertyBindings.Bindings
         {
             _property = property;
             _root = root;
+
+            if (!BindableProperty.IsGenericLayoutCompatible(property.Kind, property.ComponentLayout))
+                throw new ArgumentException(
+                    $"Generic binding layout mismatch for {Describe(property)}. " +
+                    $"Expected {BindableProperty.ExpectedGenericComponentLayout(property.Kind)} for {property.Kind}, but received {property.ComponentLayout}.",
+                    nameof(property));
+            if (!CanBind(property))
+                throw new ArgumentException($"GenericPropertyBinding does not support {Describe(property)}.", nameof(property));
 
             _genericBindings = new List<GenericBinding>(4);
             _targetMustBeNotifiedOnWrite = property.Target is Component && property.Path != "m_Enabled";
@@ -108,66 +116,113 @@ namespace TimboJimbo.PropertyBindings.Bindings
                 }
             }
 
-            // Perform binding 
-
-            int componentCount = _genericBindings.Count;
-            if (componentCount == 0)
-                return;
-
-            // Build native array of generic bindings
-            var genericBindingsNative = new NativeArray<GenericBinding>(componentCount, Allocator.Temp);
-            for (int i = 0; i < componentCount; i++)
-                genericBindingsNative[i] = _genericBindings[i];
-
-            // Bind all component properties at once
-            GenericBindingUtility.BindProperties(_root, genericBindingsNative,
-                out _floatProperties, out _discreteProperties, out _entityIdProperties, Allocator.Persistent);
-
-            genericBindingsNative.Dispose();
-
-            // Allocate value buffers matching the bound property arrays
-            if (_floatProperties.IsCreated && _floatProperties.Length > 0)
-                _floatValueBuffer = new NativeArray<float>(_floatProperties.Length, Allocator.Persistent);
-
-            if (_discreteProperties.IsCreated && _discreteProperties.Length > 0)
-                _discreteValueBuffer = new NativeArray<int>(_discreteProperties.Length, Allocator.Persistent);
-
-            if (_entityIdProperties.IsCreated && _entityIdProperties.Length > 0)
-                _entityIdValueBuffer = new NativeArray<EntityId>(_entityIdProperties.Length, Allocator.Persistent);
-
-            // Build component-to-buffer index map.
-            // BindProperties preserves input order within each output array, so we can
-            // determine the mapping by iterating through GenericBindings in creation order.
-            _componentToFloatIndex = new NativeArray<int>(componentCount, Allocator.Persistent);
-            _componentToDiscreteIndex = new NativeArray<int>(componentCount, Allocator.Persistent);
-            _componentToEntityIdIndex = new NativeArray<int>(componentCount, Allocator.Persistent);
-
-            int floatIdx = 0, discreteIdx = 0, entityIdIdx = 0;
-            for (int i = 0; i < componentCount; i++)
+            try
             {
-                var binding = _genericBindings[i];
-                if (binding.isDiscrete)
+                int componentCount = _genericBindings.Count;
+                if (componentCount == 0)
+                    throw new InvalidOperationException($"Generic binding produced no components for {Describe(property)}.");
+
+                var genericBindingsNative = new NativeArray<GenericBinding>(componentCount, Allocator.Temp);
+                try
                 {
-                    _componentToFloatIndex[i] = -1;
-                    _componentToDiscreteIndex[i] = discreteIdx;
-                    _componentToEntityIdIndex[i] = -1;
-                    discreteIdx++;
+                    for (int i = 0; i < componentCount; i++)
+                        genericBindingsNative[i] = _genericBindings[i];
+
+                    GenericBindingUtility.BindProperties(_root, genericBindingsNative,
+                        out _floatProperties, out _discreteProperties, out _entityIdProperties, Allocator.Persistent);
                 }
-                else if (binding.isObjectReference)
+                finally
                 {
-                    _componentToFloatIndex[i] = -1;
-                    _componentToDiscreteIndex[i] = -1;
-                    _componentToEntityIdIndex[i] = entityIdIdx;
-                    entityIdIdx++;
+                    genericBindingsNative.Dispose();
                 }
-                else
+
+                int expectedFloatCount = 0;
+                int expectedDiscreteCount = 0;
+                int expectedEntityIdCount = 0;
+                for (int i = 0; i < componentCount; i++)
                 {
-                    _componentToFloatIndex[i] = floatIdx;
-                    _componentToDiscreteIndex[i] = -1;
-                    _componentToEntityIdIndex[i] = -1;
-                    floatIdx++;
+                    var binding = _genericBindings[i];
+                    bool expectsDiscrete = property.Kind == ValueKind.Enum;
+                    bool expectsReference = property.Kind == ValueKind.Reference;
+                    bool expectsFloat = !expectsDiscrete && !expectsReference;
+                    bool isFloat = !binding.isDiscrete && !binding.isObjectReference;
+                    if (binding.isDiscrete != expectsDiscrete ||
+                        binding.isObjectReference != expectsReference ||
+                        isFloat != expectsFloat)
+                    {
+                        throw new InvalidOperationException(
+                            $"Generic binding component category mismatch for {Describe(property)} at component {i}. Expected " +
+                            $"{(expectsDiscrete ? "discrete" : expectsReference ? "reference" : "float")}, but Unity returned " +
+                            $"{(binding.isDiscrete ? "discrete" : binding.isObjectReference ? "reference" : "float")}.");
+                    }
+                    if (binding.isDiscrete) expectedDiscreteCount++;
+                    else if (binding.isObjectReference) expectedEntityIdCount++;
+                    else expectedFloatCount++;
+                }
+
+                int actualFloatCount = _floatProperties.IsCreated ? _floatProperties.Length : 0;
+                int actualDiscreteCount = _discreteProperties.IsCreated ? _discreteProperties.Length : 0;
+                int actualEntityIdCount = _entityIdProperties.IsCreated ? _entityIdProperties.Length : 0;
+                if (actualFloatCount != expectedFloatCount ||
+                    actualDiscreteCount != expectedDiscreteCount ||
+                    actualEntityIdCount != expectedEntityIdCount)
+                {
+                    throw new InvalidOperationException(
+                        $"Generic binding buffer mismatch for {Describe(property)}. " +
+                        $"Expected float/discrete/reference counts {expectedFloatCount}/{expectedDiscreteCount}/{expectedEntityIdCount}, " +
+                        $"but Unity returned {actualFloatCount}/{actualDiscreteCount}/{actualEntityIdCount}.");
+                }
+
+                if (actualFloatCount > 0)
+                    _floatValueBuffer = new NativeArray<float>(actualFloatCount, Allocator.Persistent);
+                if (actualDiscreteCount > 0)
+                    _discreteValueBuffer = new NativeArray<int>(actualDiscreteCount, Allocator.Persistent);
+                if (actualEntityIdCount > 0)
+                    _entityIdValueBuffer = new NativeArray<EntityId>(actualEntityIdCount, Allocator.Persistent);
+
+                _componentToFloatIndex = new NativeArray<int>(componentCount, Allocator.Persistent);
+                _componentToDiscreteIndex = new NativeArray<int>(componentCount, Allocator.Persistent);
+                _componentToEntityIdIndex = new NativeArray<int>(componentCount, Allocator.Persistent);
+
+                int floatIdx = 0, discreteIdx = 0, entityIdIdx = 0;
+                for (int i = 0; i < componentCount; i++)
+                {
+                    var binding = _genericBindings[i];
+                    if (binding.isDiscrete)
+                    {
+                        _componentToFloatIndex[i] = -1;
+                        _componentToDiscreteIndex[i] = discreteIdx++;
+                        _componentToEntityIdIndex[i] = -1;
+                    }
+                    else if (binding.isObjectReference)
+                    {
+                        _componentToFloatIndex[i] = -1;
+                        _componentToDiscreteIndex[i] = -1;
+                        _componentToEntityIdIndex[i] = entityIdIdx++;
+                    }
+                    else
+                    {
+                        _componentToFloatIndex[i] = floatIdx++;
+                        _componentToDiscreteIndex[i] = -1;
+                        _componentToEntityIdIndex[i] = -1;
+                    }
                 }
             }
+            catch
+            {
+                Dispose();
+                throw;
+            }
+        }
+
+        private static string Describe(BindableProperty property)
+        {
+            string target = property.Target == null
+                ? "<missing target>"
+                : $"'{property.Target.name}' ({property.Target.GetType().FullName})";
+            return $"'{property.Path}' on {target} [kind={property.Kind}, layout={property.ComponentLayout}, " +
+                   $"components='{property.ComponentOnePath}', '{property.ComponentTwoPath}', " +
+                   $"'{property.ComponentThreePath}', '{property.ComponentFourPath}']";
         }
 
 

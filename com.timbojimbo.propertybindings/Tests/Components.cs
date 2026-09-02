@@ -1,4 +1,7 @@
 using UnityEngine;
+using UnityEngine.UI;
+using TimboJimbo.PropertyBindings;
+using TimboJimbo.PropertyBindings.Bindings;
 
 namespace TimboJimboTests.PropertyBindings
 {
@@ -42,8 +45,15 @@ namespace TimboJimboTests.PropertyBindings
         public Vector3 TestVector3;
         public Vector4 TestVector4;
         public Color TestColor;
+        public TestEnum TestEnumValue;
         public Quaternion TestQuaternion;
         public Material TestReference;
+    }
+
+    internal enum TestEnum
+    {
+        First,
+        Second
     }
 
     internal class PrivatePropertyBag : MonoBehaviour
@@ -65,5 +75,32 @@ namespace TimboJimboTests.PropertyBindings
         public ArrayStructValue[] StructArray;
         public ArrayClassValue[] ClassArray;
         public int[][] NestedPrimitiveArrays;
+    }
+
+    internal class SetterAwareGraphic : MaskableGraphic
+    {
+        public int ColorSetterCallCount { get; private set; }
+
+        public override Color color
+        {
+            get => base.color;
+            set
+            {
+                ColorSetterCallCount++;
+                base.color = value;
+            }
+        }
+
+        protected override void OnPopulateMesh(VertexHelper vertexHelper)
+        {
+            vertexHelper.Clear();
+        }
+    }
+
+    internal sealed class TestPropertyBinding : IPropertyBinding
+    {
+        public void Dispose() { }
+        public ReadResult Read() => new ReadResult { Success = true, Value = ValueContainer.FromFloat(0f) };
+        public WriteResult Write(ValueContainer valueContainer) => new WriteResult { Success = true };
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using NUnit.Framework;
 using TimboJimbo.PropertyBindings;
+using TimboJimbo.PropertyBindings.Bindings;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -233,6 +234,128 @@ namespace TimboJimboTests.PropertyBindings
                 Assert.IsTrue(collection.TryWrite(prop, ValueContainer.FromColor(new Color(0.5f, 0.6f, 0.7f, 0.8f))));
                 Assert.That(Vector4.Distance((Vector4)_comp.TestColor, new Vector4(0.5f, 0.6f, 0.7f, 0.8f)), Is.LessThan(0.001f));
             }
+        }
+
+        [Test]
+        public void GraphicColor_WriteUsesVirtualPropertyAndDisposePreservesValue()
+        {
+            var graphic = _go.AddComponent<SetterAwareGraphic>();
+            var initial = new Color(0.1f, 0.2f, 0.3f, 0.4f);
+            var written = new Color(0.7f, 0.6f, 0.5f, 0.9f);
+            graphic.color = initial;
+            int callsBeforeBinding = graphic.ColorSetterCallCount;
+            var property = BindableProperty.CreateFourComponent(
+                graphic, "m_Color", ValueKind.Color,
+                "m_Color.r", "m_Color.g", "m_Color.b", "m_Color.a");
+
+            using (var collection = PropertyBindingCollection.Bind(_go, new[] { property }))
+            {
+                Assert.IsTrue(collection.TryGetBindingType(property, out var bindingType));
+                Assert.AreEqual(typeof(GraphicPropertyBinding), bindingType);
+                Assert.IsTrue(collection.TryWrite(property, ValueContainer.FromColor(written)));
+                Assert.AreEqual(callsBeforeBinding + 1, graphic.ColorSetterCallCount);
+                Assert.AreEqual(written, graphic.color);
+            }
+
+            Assert.AreEqual(written, graphic.color, "Disposal must not rewrite the last styled color.");
+        }
+
+        [Test]
+        public void GraphicColor_RepeatedBulkWritesRemainSafe()
+        {
+            var graphic = _go.AddComponent<SetterAwareGraphic>();
+            var property = BindableProperty.CreateFourComponent(
+                graphic, "m_Color", ValueKind.Color,
+                "m_Color.r", "m_Color.g", "m_Color.b", "m_Color.a");
+
+            using (var collection = PropertyBindingCollection.Bind(_go, new[] { property }))
+            using (collection.BulkWriteScope())
+            {
+                for (int i = 0; i < 32; i++)
+                {
+                    var color = Color.Lerp(Color.black, Color.cyan, i / 31f);
+                    Assert.IsTrue(collection.TryWrite(property, ValueContainer.FromColor(color)));
+                }
+            }
+
+            Assert.AreEqual(Color.cyan, graphic.color);
+        }
+
+        [Test]
+        public void GenericBinding_RejectsMalformedColorLayoutAtConstruction()
+        {
+            var malformed = BindableProperty.CreateScalar(_comp, nameof(PropertyBag.TestColor), ValueKind.Color);
+
+            Assert.IsFalse(GenericPropertyBinding.CanBind(malformed));
+            var exception = Assert.Throws<ArgumentException>(() => new GenericPropertyBinding(_go, malformed));
+            StringAssert.Contains("layout mismatch", exception.Message);
+            StringAssert.Contains(nameof(PropertyBag.TestColor), exception.Message);
+        }
+
+        [Test]
+        public void MalformedComposite_BufferCategoryMismatchFailsDuringBind()
+        {
+            var property = BindableProperty.CreateFourComponent(
+                _comp, nameof(PropertyBag.TestColor), ValueKind.Color,
+                $"{nameof(PropertyBag.TestColor)}.r",
+                $"{nameof(PropertyBag.TestColor)}.g",
+                $"{nameof(PropertyBag.TestColor)}.b",
+                nameof(PropertyBag.TestEnumValue));
+
+            var exception = Assert.Throws<AggregateException>(() =>
+                PropertyBindingCollection.Bind(_go, new[] { property }));
+            StringAssert.Contains(nameof(PropertyBag.TestColor), exception.ToString());
+            StringAssert.Contains("category mismatch", exception.ToString());
+        }
+
+        [Test]
+        public void ScalarPublicColorProperty_ResolvesToReflectionBinding()
+        {
+            var graphic = _go.AddComponent<SetterAwareGraphic>();
+            var property = BindableProperty.CreateScalar(graphic, nameof(SetterAwareGraphic.color), ValueKind.Color);
+
+            Assert.AreEqual(typeof(ReflectionPropertyBinding), PropertyBindingRegistry.ResolveBindingType(_go, property));
+            var report = PropertyBindingRegistry.Diagnose(_go, property);
+            Assert.IsTrue(report.Success);
+            Assert.AreEqual(typeof(ReflectionPropertyBinding), report.SelectedBindingType);
+        }
+
+        [Test]
+        public void TypedDescriptorAndValueFactory_CreateCanonicalGraphicColor()
+        {
+            var graphic = _go.AddComponent<SetterAwareGraphic>();
+            var property = BindableProperty.Create(graphic, GraphicProperties.Color);
+            var value = ValueContainer.From(Color.yellow);
+
+            Assert.AreEqual("m_Color", property.Path);
+            Assert.AreEqual(ComponentLayout.Four, property.ComponentLayout);
+            Assert.AreEqual("m_Color.a", property.ComponentFourPath);
+            Assert.AreEqual(ValueKind.Color, value.Kind);
+            Assert.AreEqual(Color.yellow, value.ColorValue);
+        }
+
+        [Test]
+        public void Registry_CreateAndResolveContinueAfterCandidateConstructionFailure()
+        {
+            const string path = "__RegistryFallbackTest__";
+            var property = BindableProperty.CreateScalar(_comp, path, ValueKind.Float);
+            PropertyBindingRegistry.Register(typeof(TestPropertyBinding),
+                candidate => candidate.Path == path,
+                (_, _) => throw new InvalidOperationException("Expected test failure."),
+                -100);
+            PropertyBindingRegistry.Register(typeof(TestPropertyBinding),
+                candidate => candidate.Path == path,
+                (_, _) => new TestPropertyBinding(),
+                -99);
+
+            using (var binding = PropertyBindingRegistry.Create(_go, property))
+                Assert.IsInstanceOf<TestPropertyBinding>(binding);
+            Assert.AreEqual(typeof(TestPropertyBinding), PropertyBindingRegistry.ResolveBindingType(_go, property));
+
+            var report = PropertyBindingRegistry.Diagnose(_go, property);
+            Assert.IsTrue(report.Success);
+            Assert.AreEqual(typeof(TestPropertyBinding), report.SelectedBindingType);
+            Assert.IsNotNull(report.Candidates[0].Failure);
         }
 
         [Test]

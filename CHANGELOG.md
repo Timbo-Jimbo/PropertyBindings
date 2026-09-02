@@ -1,3 +1,13 @@
+## [Unreleased]
+
+- Fixed `Graphic.color` bindings to honor the public virtual property contract for custom `Graphic` subclasses
+- Generic bindings now reject incompatible component layouts and validate Unity's returned buffer counts during construction
+- Malformed composite bindings now fail at bind time instead of falling through to atomic reflection writes
+- Added structured binding resolution diagnostics with candidate failures and consistent `Create`/`ResolveBindingType` fallback
+- Added typed, extensible property descriptors and canonical descriptors for common Transform and UGUI properties
+- Added typed `ValueContainer.From(...)` overloads
+- Binding construction now cleans up partial native and collection state after failures
+
 ## [0.7.0] - 06/07/2026
 
 - Added a Drawer for BindableProperty

@@ -12,7 +12,10 @@ namespace TimboJimbo.PropertyBindings.Bindings
     {
         private readonly BindableProperty _property;
 
-        public static bool CanBind(BindableProperty property) => ReflectionReadWrite.CanAccess(property);
+        // Reflection reads/writes the complete member value. Composite descriptors must be
+        // handled by a component-aware binding rather than silently bypassing bad component paths.
+        public static bool CanBind(BindableProperty property) =>
+            property.ComponentLayout == ComponentLayout.One && ReflectionReadWrite.CanAccess(property);
 
         public ReflectionPropertyBinding(
             GameObject root,

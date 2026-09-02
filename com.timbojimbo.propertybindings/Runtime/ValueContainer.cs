@@ -229,6 +229,18 @@ namespace TimboJimbo.PropertyBindings
         public static ValueContainer FromReference(Object value) => new ValueContainer { ReferenceValue = value };
         public static ValueContainer FromString(string value) => new ValueContainer { StringValue = value };
 
+        public static ValueContainer From(int value) => FromInt(value);
+        public static ValueContainer From(float value) => FromFloat(value);
+        public static ValueContainer From(bool value) => FromBool(value);
+        public static ValueContainer From(Vector2 value) => FromVector2(value);
+        public static ValueContainer From(Vector3 value) => FromVector3(value);
+        public static ValueContainer From(Vector4 value) => FromVector4(value);
+        public static ValueContainer From(Color value) => FromColor(value);
+        public static ValueContainer From(Quaternion value) => FromQuaternion(value);
+        public static ValueContainer From(Object value) => FromReference(value);
+        public static ValueContainer From(string value) => FromString(value);
+        public static ValueContainer From<TEnum>(TEnum value) where TEnum : Enum => FromEnum(value);
+
         public static ValueContainer FromVector2(Vector2 value)
             => new ValueContainer { Vector2Value = value };
 
