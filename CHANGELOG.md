@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [0.8.2] - 03/09/2026
+
+### Added
+
+- `ValueContainer.From<T>(T)` now accepts every supported value type (previously enums only), so generic code can construct typed values without per-type overloads; unsupported types throw at construction
+
 ## [0.8.1] - 02/09/2026
 
 ### Fixed

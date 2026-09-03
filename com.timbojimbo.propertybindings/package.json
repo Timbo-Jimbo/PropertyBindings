@@ -1,7 +1,7 @@
 {
 	"name": "com.timbojimbo.propertybindings",
 	"displayName":"Property Bindings",
-	"version": "0.8.1",
+	"version": "0.8.2",
 	"unity": "6000.0",
 	"unityRelease": "0f1",
 	"description": "Lets you find and drive bindable properties on GameObjects.",

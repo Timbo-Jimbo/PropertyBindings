@@ -239,7 +239,31 @@ namespace TimboJimbo.PropertyBindings
         public static ValueContainer From(Quaternion value) => FromQuaternion(value);
         public static ValueContainer From(Object value) => FromReference(value);
         public static ValueContainer From(string value) => FromString(value);
-        public static ValueContainer From<TEnum>(TEnum value) where TEnum : Enum => FromEnum(value);
+
+        /// <summary>Typed entry point for generic code. Throws for value types that have no <see cref="ValueKind"/>.</summary>
+        public static ValueContainer From<T>(T value)
+        {
+            switch (value)
+            {
+                case int v: return FromInt(v);
+                case float v: return FromFloat(v);
+                case bool v: return FromBool(v);
+                case Vector2 v: return FromVector2(v);
+                case Vector3 v: return FromVector3(v);
+                case Vector4 v: return FromVector4(v);
+                case Color v: return FromColor(v);
+                case Quaternion v: return FromQuaternion(v);
+                case string v: return FromString(v);
+                case Object v: return FromReference(v);
+            }
+
+            if (typeof(T).IsEnum)
+                return FromEnum(Convert.ToInt32(value));
+            if (value == null && (typeof(T) == typeof(string) || typeof(Object).IsAssignableFrom(typeof(T))))
+                return typeof(T) == typeof(string) ? FromString(null) : FromReference(null);
+
+            throw new ArgumentException($"{typeof(T).FullName} has no ValueKind representation.", nameof(value));
+        }
 
         public static ValueContainer FromVector2(Vector2 value)
             => new ValueContainer { Vector2Value = value };
